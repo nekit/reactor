@@ -6,13 +6,15 @@
 #include <sys/epoll.h>
 #include <semaphore.h>
 
-#define DATA_QUEUE_SIZE 50
-#define EVENT_QUEUE_SIZE 50
+#define DATA_QUEUE_SIZE 10000
+#define EVENT_QUEUE_SIZE 10000
+#define EPOLL_TIMEOUT 100
 
 #define DEFAULT_PORT 2007
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_MAX_USERS 1000
 #define DEFAULT_LISTN_BACKLOG 1000
+#define DEFAULT_WORKER_AMOUNT 4
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -50,6 +52,7 @@ typedef struct sock_desk_s {
 
   int sock;
   sock_type_t type;
+  int idx;
   data_queue_t data_queue;
   packet_t send_pack;
   packet_t recv_pack;
@@ -73,6 +76,7 @@ typedef struct int_queue_s {
 typedef struct reactor_pool_s {
 
   int max_n;
+  int epfd;
   sock_desk_t * sock_desk;  
   event_queue_t event_queue;
   int_queue_t idx_queue;  
@@ -82,7 +86,6 @@ typedef struct reactor_pool_s {
 typedef struct thread_pool_s {
 
   int n;
-  int epfd;
   pthread_t * worker;
   reactor_pool_t * rct_pool_p;  
   

@@ -1,24 +1,29 @@
 #include "thread_pool_op.h"
 #include "event_queue_op.h"
 #include "log.h"
+#include "handle_event.h"
 #include <memory.h>
 #include <stdlib.h>
 
 void * work ( void * arg ) {
 
   static int worker_idx = 1;
-  TRACE_MSG ( "worker %d started\n", worker_idx++ );
+  INFO_MSG ( "worker %d started\n", worker_idx++ );
 
+  reactor_pool_t * rct_p_p = arg;
+  struct epoll_event ev;
+  for ( ; ; ) {
 
-  // TODO... O_o
-  
+    pop_event_queue ( &rct_p_p -> event_queue, &ev );
+    handle_event ( &ev, rct_p_p );
+  }  
 
   return NULL;
 }
 
 int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
 
-  TRACE_MSG ( "thread poll initializing\n" );
+  TRACE_MSG ( "thread poll initializing %d\n", n );
 
   tp -> n = n;
   tp -> rct_pool_p = rp;
@@ -27,14 +32,7 @@ int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
 
     ERROR_MSG ( "memory problem: malloc\n" );
     return -1;
-  }
-
-  tp -> epfd = epoll_create ( tp -> n );
-  if ( -1 == tp -> epfd ) {
-
-    ERROR_MSG ( "epoll create failed with n = %d\n", tp -> n );
-    return -1;
-  }
+  } 
 
   return 0;  
 }
@@ -49,6 +47,7 @@ int start_thread_pool ( thread_pool_t * tp ) {
       return -1;
     }
 
+  DEBUG_MSG ( "thread pool started successfully\n" );
   
   return 0;
 }

@@ -37,28 +37,32 @@ int init_event_queue ( event_queue_t * eq ) {
 
 void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
+  sem_wait ( &eq -> empty );
+
   pthread_mutex_lock ( &eq -> write_mutex );
 
   eq -> event[ eq -> tail ] = *ev;
   if ( EVENT_QUEUE_SIZE == ++eq -> tail )
     eq -> tail = 0;
-
+  
+  pthread_mutex_unlock ( &eq -> write_mutex );
   sem_post ( &eq -> used );
-  sem_wait ( &eq -> empty );
 
-  pthread_mutex_unlock ( &eq -> write_mutex );  
+  TRACE_MSG ( "event pushed\n" );
 }
 
 void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
+  TRACE_MSG ( "poping...\n" );
+
+  sem_wait ( &eq -> used );
   pthread_mutex_lock ( &eq -> read_mutex );
 
   *ev = eq -> event[ eq -> head ];
   if ( EVENT_QUEUE_SIZE == ++eq -> head )
     eq -> head = 0;
-
-  sem_post ( &eq -> empty );
-  sem_wait ( &eq -> used );
-  
+    
   pthread_mutex_unlock ( &eq -> read_mutex );
+  sem_post ( &eq -> empty );
+  TRACE_MSG ( "event poped\n" );
 }
