@@ -7,7 +7,7 @@
 #include <semaphore.h>
 
 #define DATA_QUEUE_SIZE 10000
-#define EVENT_QUEUE_SIZE 10000
+#define EVENT_QUEUE_SIZE 1000000
 #define EPOLL_TIMEOUT 100
 
 #define DEFAULT_PORT 2007
@@ -24,8 +24,8 @@ typedef struct data_queue_s {
   packet_t pack[ DATA_QUEUE_SIZE ];
   int head;
   int tail;
-  int size;
-  pthread_mutex_t mutex;
+  sem_t used;
+  sem_t empty;
   
 } data_queue_t;
 
@@ -58,6 +58,8 @@ typedef struct sock_desk_s {
   packet_t recv_pack;
   int send_ofs;
   int recv_ofs;
+  pthread_mutex_t read_mutex;
+  pthread_mutex_t write_mutex;
   
 } sock_desk_t;
 

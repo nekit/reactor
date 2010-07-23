@@ -2,6 +2,14 @@
 #include "log.h"
 #include <memory.h>
 
+inline int value ( sem_t * sem_p ) {
+
+  int tmp = -1;
+  sem_getvalue ( sem_p, &tmp );
+  return tmp;
+}
+
+
 int init_event_queue ( event_queue_t * eq ) {
 
   memset ( eq -> event, 0, sizeof (eq -> event) );
@@ -37,8 +45,9 @@ int init_event_queue ( event_queue_t * eq ) {
 
 void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
-  sem_wait ( &eq -> empty );
+  DEBUG_MSG ( "event queue size = %d\n", value ( &eq -> used ) );
 
+  sem_wait ( &eq -> empty );
   pthread_mutex_lock ( &eq -> write_mutex );
 
   eq -> event[ eq -> tail ] = *ev;
