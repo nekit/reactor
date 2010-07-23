@@ -29,16 +29,19 @@ typedef struct data_queue_s {
   
 } data_queue_t;
 
+typedef struct eventq_s {
+
+  struct epoll_event ev;
+  struct eventq_s * prev; 
+  
+} eventq_t;
+
 typedef struct event_queue_s {
 
-  struct epoll_event event[ EVENT_QUEUE_SIZE ];
-  int head;
-  int tail;
+  eventq_t * head;
+  eventq_t * tail;
   sem_t used;
-  sem_t empty;  
-  pthread_mutex_t read_mutex;
-  pthread_mutex_t write_mutex;
-  
+  pthread_mutex_t mutex;  
 } event_queue_t;
 
 typedef enum {
