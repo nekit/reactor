@@ -34,7 +34,6 @@ int init_event_queue ( event_queue_t * eq ) {
 void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
   TRACE_MSG ( "pushing...\n" );
-
   pthread_mutex_lock ( &eq -> mutex );
 
   eventq_t * t = malloc ( sizeof ( eventq_t) );  
@@ -44,30 +43,19 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
     return;
   }
 
-  TRACE_MSG ( "malloc ok: %p\n", t );
-  TRACE_MSG ( "!!!-1: %p\n", eq -> tail );
-  TRACE_MSG ( "!!! 0: %p\n", eq -> head );
-
   t -> ev = *ev;
   t -> prev = NULL;
-  int sz = value ( &eq -> used );
-  if ( 0 == sz ) { 
-    
-      eq -> head = eq -> tail = t;  
-  }else {
 
-    eq -> tail -> prev = t;    
+  if ( NULL == eq -> tail )  
+    eq -> head = eq -> tail = t;
+  else {
+
+    eq -> tail -> prev = t;
     eq -> tail = t;
   }
 
-  TRACE_MSG ( "!!! 1: %p\n",eq -> tail -> prev );
-  TRACE_MSG ( "!!! 2: %p\n",eq -> head -> prev );
-  TRACE_MSG ( "!!! 3: %p\n",eq -> tail );
-
-  TRACE_MSG ( "head in push: %p\n", eq -> head );
-  
-  pthread_mutex_unlock ( &eq -> mutex );
   sem_post ( &eq -> used );
+  pthread_mutex_unlock ( &eq -> mutex );
 
   TRACE_MSG ( "event pushed\n" );
 }
@@ -79,20 +67,15 @@ void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
   sem_wait ( &eq -> used );
   pthread_mutex_lock ( &eq -> mutex );
 
-  TRACE_MSG ( "head in pop: %p\n", eq -> head );
-
   *ev = eq -> head -> ev;
   eventq_t * t = eq -> head;
-  int sz = value ( &eq -> used );
 
-  if ( 0 == sz )
+  if ( eq -> head == eq -> tail )
     eq -> head = eq -> tail = NULL;
-  else 
-    eq -> head = eq -> head -> prev;  
-  
-  free ( t );
-
-  TRACE_MSG ( "head perex in pop: %p\n", eq -> head );
+  else
+    eq -> head = eq -> head -> prev; 
+    
+  free ( t );  
     
   pthread_mutex_unlock ( &eq -> mutex );  
   TRACE_MSG ( "event poped\n" );
