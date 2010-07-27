@@ -14,9 +14,10 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> port = DEFAULT_PORT;
   rm -> max_users = DEFAULT_MAX_USERS;
   rm -> listn_backlog = DEFAULT_LISTN_BACKLOG;
+  rm -> workers = DEFAULT_WORKER_AMOUNT;
 
   int res;  
-  while ( (res = getopt(argc,argv,"s:p:u:L:")) != -1) {
+  while ( (res = getopt(argc,argv,"s:p:u:w:L:")) != -1) {
     switch (res){
        case 's':
 	 stpcpy(rm -> ip_addr, optarg);
@@ -49,6 +50,9 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
     case 'L' :
       TRACE_MSG( "parsing level %s\n", optarg );
       INIT_LOG_LEVEL( optarg );
+      break;
+    case 'w':
+      rm -> workers = atoi ( optarg );
       break;
     }
     

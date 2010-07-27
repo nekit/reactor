@@ -14,13 +14,14 @@ int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
   TRACE_MSG ( "initing reactor\n" );
 
   rct -> max_n = rm -> max_users;
+  rct -> workers = rm -> workers;
   if ( 0 != init_reactor_pool ( &rct -> pool, rct -> max_n ) ) {
 
     ERROR_MSG ( "init_reactor_pool failed\n" );
     return -1;
   }
 
-  if ( 0 != init_thread_pool ( &rct -> thread_pool, DEFAULT_WORKER_AMOUNT, &rct -> pool ) ){
+  if ( 0 != init_thread_pool ( &rct -> thread_pool, rct -> workers, &rct -> pool ) ){
 
     ERROR_MSG ( "init_thread_pool failed\n" );
     return -1;
@@ -81,8 +82,11 @@ int run_reactor ( run_mode_t rm ) {
     }
 
     int i;
-    for ( i = 0; i < n; ++i )
+    for ( i = 0; i < n; ++i ) {
+
+      TRACE_MSG ( "pushing from epoll\n" );      
       push_event_queue ( &reactor.pool.event_queue, &events[i] );
+    }
     
   }
 
