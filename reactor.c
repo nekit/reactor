@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include "reactor_structures.h"
 #include "parse_args.h"
 #include "run_reactor.h"
@@ -6,6 +7,8 @@
 
 int main ( int argc, char * argv[] ) {
 
+  signal ( SIGPIPE, SIG_IGN );
+  
   run_mode_t run_mode;
   parse_args ( argc, argv, &run_mode );
 

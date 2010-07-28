@@ -24,8 +24,8 @@ typedef struct data_queue_s {
   packet_t pack[ DATA_QUEUE_SIZE ];
   int head;
   int tail;
-  int size;
-  pthread_mutex_t mutex;
+  sem_t used;
+  sem_t empty;
   
 } data_queue_t;
 
@@ -64,10 +64,8 @@ typedef struct sock_desk_s {
   packet_t recv_pack;
   int send_ofs;
   int recv_ofs;
-
-  // not using???
-  pthread_mutex_t state_mutex;
-  
+  pthread_mutex_t read_mutex;
+  pthread_mutex_t write_mutex;  
   
 } sock_desk_t;
 

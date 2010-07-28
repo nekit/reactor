@@ -35,6 +35,7 @@ int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
     return -1;
   }
 
+  //
   tp -> handle_event = handle_event;
 
   return 0;  
