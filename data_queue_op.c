@@ -37,3 +37,8 @@ void pop_data_queue ( data_queue_t * dq, packet_t * pack ) {
   dq -> size += -1;
   pthread_mutex_unlock ( &dq -> mutex );
 }
+
+void deinit_data_queue ( data_queue_t * dq ) {
+
+  pthread_mutex_destroy ( &dq -> mutex );
+}

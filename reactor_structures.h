@@ -64,6 +64,8 @@ typedef struct sock_desk_s {
   packet_t recv_pack;
   int send_ofs;
   int recv_ofs;
+
+  // not using???
   pthread_mutex_t state_mutex;
   
   
@@ -95,7 +97,8 @@ typedef struct thread_pool_s {
 
   int n;
   pthread_t * worker;
-  reactor_pool_t * rct_pool_p;  
+  reactor_pool_t * rct_pool_p;
+  int (*handle_event) ( struct epoll_event * ev, reactor_pool_t * rp_p );
   
 } thread_pool_t;
 
