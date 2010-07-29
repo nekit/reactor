@@ -19,7 +19,14 @@ int init_sock ( sock_desk_t * sd_p, int sock, int idx ) {
     init_data_queue ( &sd_p -> data_queue );
     sd_p -> send_ofs = sizeof ( sd_p -> send_pack );
     sd_p -> recv_ofs = 0;
+    sd_p -> inq.flags = 0;
 
+    if ( 0 != pthread_mutex_init ( &sd_p -> inq.mutex, NULL) ) {
+
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
+    
     if ( 0 != pthread_mutex_init ( &sd_p -> read_mutex, NULL ) ) {
 
       ERROR_MSG ( "pthread_mutex_init failed\n" );
@@ -40,6 +47,13 @@ int deinit_sock ( sock_desk_t * sd_p ) {
   close ( sd_p -> sock );
   sd_p -> sock = -1;
   deinit_data_queue ( &sd_p -> data_queue );
+
+  if ( 0 != pthread_mutex_destroy ( &sd_p -> inq.mutex) ) {
+
+      ERROR_MSG ( "pthread_mutex_destroy failed\n" );
+      return -1;
+    }
+
 
   if ( 0 != pthread_mutex_destroy ( &sd_p -> read_mutex ) ) {
 
@@ -158,7 +172,7 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   }
   pthread_mutex_unlock ( &sd_p -> read_mutex );
 
-  push_event_queue ( &rp_p -> event_queue, &tmp_r );   
+  push_wrap_event_queue ( &rp_p -> event_queue, &tmp_r );   
 
   return 0;  
 }
@@ -190,7 +204,7 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
       sd_p -> type = ST_DATA;
       tmp_w.events = EPOLLIN;
-      push_event_queue ( &rp_p -> event_queue, &tmp_w );      
+      push_wrap_event_queue ( &rp_p -> event_queue, &tmp_w );      
     }
   }
 
@@ -211,7 +225,7 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     TRACE_MSG ( "send successfully\n" );
     tmp_w.events = EPOLLOUT | EPOLLIN;
     pthread_mutex_unlock ( &sd_p -> write_mutex );
-    push_event_queue ( &rp_p -> event_queue, &tmp_w );
+    push_wrap_event_queue ( &rp_p -> event_queue, &tmp_w );
   }else
     pthread_mutex_unlock ( &sd_p -> write_mutex );
 

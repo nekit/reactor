@@ -15,7 +15,7 @@ void * work ( void * arg ) {
   struct epoll_event ev;
   for ( ; ; ) {
 
-    pop_event_queue ( &rct_p_p -> event_queue, &ev );
+    pop_wrap_event_queue ( &rct_p_p -> event_queue, &ev );
     tp_p -> handle_event ( &ev, rct_p_p );
   }  
 

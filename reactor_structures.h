@@ -42,7 +42,10 @@ typedef struct event_queue_s {
   eventq_t * tail;
   sem_t used;
   pthread_mutex_t read_mutex;
-  pthread_mutex_t write_mutex;  
+  pthread_mutex_t write_mutex;
+
+  pthread_mutex_t mutex;
+  
 } event_queue_t;
 
 typedef enum {
@@ -53,6 +56,13 @@ typedef enum {
   ST_LAST,
   
 } sock_type_t;
+
+typedef struct inq_s {
+
+  __uint32_t flags;
+  pthread_mutex_t mutex;
+  
+} inq_t;
 
 typedef struct sock_desk_s {
 
@@ -65,7 +75,8 @@ typedef struct sock_desk_s {
   int send_ofs;
   int recv_ofs;
   pthread_mutex_t read_mutex;
-  pthread_mutex_t write_mutex;  
+  pthread_mutex_t write_mutex;
+  inq_t inq;
   
 } sock_desk_t;
 

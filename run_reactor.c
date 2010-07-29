@@ -49,6 +49,15 @@ int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
       ERROR_MSG ( "pthread_mutex_init failed\n" );
       return -1;
     }
+    
+    if ( 0 != pthread_mutex_init ( &rct -> pool.sock_desk[idx].inq.mutex, NULL ) ) {
+	  
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
+
+    rct -> pool.sock_desk[idx].inq.flags = 0;
+
   
   struct epoll_event ev;
   memset ( &ev, 0, sizeof (ev) );
@@ -97,7 +106,7 @@ int run_reactor ( run_mode_t rm ) {
     for ( i = 0; i < n; ++i ) {
 
       TRACE_MSG ( "pushing from epoll\n" );      
-      push_event_queue ( &reactor.pool.event_queue, &events[i] );
+      push_wrap_event_queue ( &reactor.pool.event_queue, &events[i] );
     }
     
   }

@@ -35,6 +35,12 @@ int init_event_queue ( event_queue_t * eq ) {
     return -1;
   }
 
+  if ( 0 != pthread_mutex_init ( &eq -> mutex, NULL ) ) {
+
+    ERROR_MSG ( "read_mutex init failed\n" );
+    return -1;
+  }
+
   return 0;
 }
 
@@ -76,4 +82,39 @@ void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
     
   pthread_mutex_unlock ( &eq -> read_mutex );  
   TRACE_MSG ( "event poped\n" );
+}
+
+void push_wrap_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
+
+
+  sock_desk_t * sd_p = ev -> data.ptr;
+  inq_t * inq_p = &sd_p -> inq;
+  __uint32_t t = 0;
+
+  // check for existing events in queue ^_^
+  pthread_mutex_lock ( &inq_p -> mutex );
+  t = ev -> events ^ ( ev -> events & inq_p -> flags );
+  inq_p -> flags = inq_p -> flags | t;
+  pthread_mutex_unlock  ( &inq_p -> mutex );
+
+  if ( t > 0 ) {
+    ev -> events = t;
+    push_event_queue ( eq, ev );
+  }
+
+  
+}
+
+void pop_wrap_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
+
+
+  pop_event_queue ( eq, ev );
+
+  sock_desk_t * sd_p = ev -> data.ptr;
+  inq_t * inq_p = &sd_p -> inq;
+  // remove events
+  pthread_mutex_lock ( &inq_p -> mutex );
+  inq_p -> flags = inq_p -> flags ^ ev -> events;
+  pthread_mutex_unlock ( &inq_p -> mutex );
+
 }
