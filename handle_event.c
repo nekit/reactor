@@ -87,14 +87,20 @@ int handle_error ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   return 0;
 }
 
+
+// accept O_o
 int handle_accept ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
   int acp_sock = ((sock_desk_t *)(ev -> data.ptr)) -> sock;
-  for ( ; ; ) {
+
+  int i;
+  for ( i = 0; i < 100; ++i  ) {
 
     int sock = accept ( acp_sock, NULL, NULL );
-    if ( -1 == sock )
-      break;
+    if ( -1 == sock ) {
+      // fd ends ???
+      continue;
+    }
   
 
     //check available slots!
@@ -111,8 +117,7 @@ int handle_accept ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
       ERROR_MSG ( "epoll_ctl failed add sock %d\n", sock );
       return -1;
     }
-
-    // atomic:
+   
     static int acp_cnt = 1;
     INFO_MSG ( "accepted connection %d\n sock %d\n", acp_cnt++, sock );
   }    
@@ -122,41 +127,26 @@ int handle_accept ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
 int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
-    sock_desk_t * sd_p = ev -> data.ptr;  
-
-  if ( 0 != pthread_mutex_trylock ( &sd_p -> read_mutex ) )
-    return 0;
-
+  sock_desk_t * sd_p = ev -> data.ptr;  
 
   DEBUG_MSG ( "handling read event\n" );
 
 
-  if ( ST_ACCEPT == sd_p -> type ) {
-    handle_accept ( ev, rp_p );
-    pthread_mutex_unlock ( &sd_p -> read_mutex );
-    return 0;
-  }
+  if ( ST_ACCEPT == sd_p -> type ) 
+    return handle_accept ( ev, rp_p );
+    
 
-  if ( ST_NOT_ACTIVE == sd_p -> type ) {
-    pthread_mutex_unlock ( &sd_p -> read_mutex );
+  if ( ST_NOT_ACTIVE == sd_p -> type )    
     return 0;
-  }
-  
+    
   int len = recv ( sd_p -> sock, &sd_p -> recv_pack + sd_p -> recv_ofs, sizeof ( sd_p -> recv_pack ) - sd_p -> recv_ofs, 0);
-  if ( len <= 0 ) {
-
-    TRACE_MSG ( "read len = %d\n", len );
-    //perror ( "!!!" );
-    pthread_mutex_unlock ( &sd_p -> read_mutex );
+  if ( len <= 0 ) 
     return 0;
-  }
-
+  
   sd_p -> recv_ofs += len;
-  if ( sizeof (sd_p -> recv_pack) != sd_p -> recv_ofs  ) {
-    pthread_mutex_unlock ( &sd_p -> read_mutex );
+  if ( sizeof (sd_p -> recv_pack) != sd_p -> recv_ofs  )     
     return 0;
-  }
-
+  
   static __thread struct epoll_event tmp_r;
   tmp_r.data = ev -> data;
   tmp_r.events = EPOLLIN | EPOLLOUT;
@@ -170,8 +160,7 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     sd_p -> type = ST_NOT_ACTIVE;
     tmp_r.events = EPOLLOUT;
   }
-  pthread_mutex_unlock ( &sd_p -> read_mutex );
-
+  
   push_wrap_event_queue ( &rp_p -> event_queue, &tmp_r );   
 
   return 0;  
@@ -180,22 +169,17 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
   sock_desk_t * sd_p = ev -> data.ptr;
-  if ( 0 != pthread_mutex_trylock (&sd_p -> write_mutex) )
-    return 0;
-
   
   DEBUG_MSG ( "handling write event\n" );
 
   static __thread struct epoll_event tmp_w;
   tmp_w.data = ev -> data;
 
-
   if ( sizeof ( sd_p -> send_pack ) == sd_p -> send_ofs ) {
 
     if ( 0 != pop_data_queue (&sd_p -> data_queue, &sd_p -> send_pack ) ) {
 
       TRACE_MSG ( "nothing to send O_O\n" );
-      pthread_mutex_unlock ( &sd_p -> write_mutex );
       return 0;
     }
     sd_p -> send_ofs = 0;
@@ -214,43 +198,53 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     
     TRACE_MSG ( "send len = %d\n", len );
     // perror ("!!!");
-    pthread_mutex_unlock ( &sd_p -> write_mutex );
     return 0;
-  }
-  
+  }  
 
   sd_p -> send_ofs += len;
   if ( sizeof ( sd_p -> send_pack) == sd_p -> send_ofs ) {
 
     TRACE_MSG ( "send successfully\n" );
-    tmp_w.events = EPOLLOUT | EPOLLIN;
-    pthread_mutex_unlock ( &sd_p -> write_mutex );
+    tmp_w.events = EPOLLOUT | EPOLLIN; 
     push_wrap_event_queue ( &rp_p -> event_queue, &tmp_w );
-  }else
-    pthread_mutex_unlock ( &sd_p -> write_mutex );
+  }
 
   return 0;
 }
 
-
 int handle_event ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
+
+  static __thread struct epoll_event event_in = { .events = EPOLLIN };
+  static __thread struct epoll_event event_out = { .events = EPOLLOUT };
 
   sock_desk_t * sd_p = ev -> data.ptr;
 
   if ( -1 == sd_p -> sock )
     return 0;
 
-  if ( 0 != (ev -> events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) )
+  if ( 0 != (ev -> events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) )     
     handle_error ( ev, rp_p );
 
   if ( 0 != (ev -> events & EPOLLIN) ) {
+    
+    if ( 0 == pthread_mutex_trylock ( &sd_p -> read_mutex ) ) {
       handle_read ( ev, rp_p );
+      pthread_mutex_unlock ( &sd_p -> read_mutex );
+    }else {
+      event_in.data = ev -> data;
+      push_wrap_event_queue ( &rp_p -> event_queue, &event_in );
+    }
   }
 
   if ( 0 != (ev -> events & EPOLLOUT) ) {
 
+    if ( 0 == pthread_mutex_trylock ( &sd_p -> write_mutex ) ) {
       handle_write ( ev, rp_p );
-  
+      pthread_mutex_unlock ( &sd_p -> write_mutex );
+    } else {
+      event_out.data = ev -> data;
+      push_wrap_event_queue ( &rp_p -> event_queue, &event_out );
+    }  
   }
 
   return 0;

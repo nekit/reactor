@@ -14,7 +14,7 @@
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_MAX_USERS 1000
 #define DEFAULT_LISTN_BACKLOG 1000
-#define DEFAULT_WORKER_AMOUNT 4
+#define DEFAULT_WORKER_AMOUNT 8
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -43,8 +43,6 @@ typedef struct event_queue_s {
   sem_t used;
   pthread_mutex_t read_mutex;
   pthread_mutex_t write_mutex;
-
-  pthread_mutex_t mutex;
   
 } event_queue_t;
 
