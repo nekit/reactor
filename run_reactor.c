@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <memory.h>
 
+#define ACCEPT_KEY 0
+
 int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
 
   TRACE_MSG ( "initing reactor\n" );
@@ -37,7 +39,7 @@ int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
   int idx = pop_int_queue ( &rct -> pool.idx_queue );
   rct -> pool.sock_desk[idx].sock = listn_sock;
   rct -> pool.sock_desk[idx].type = ST_ACCEPT;
-  rct -> pool.sock_desk[idx].idx = idx;
+  rct -> pool.sock_desk[idx].key = ACCEPT_KEY;
   if ( 0 != pthread_mutex_init ( &rct -> pool.sock_desk[idx].read_mutex, NULL ) ) {
 
       ERROR_MSG ( "pthread_mutex_init failed\n" );
@@ -57,12 +59,16 @@ int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
     }
 
     rct -> pool.sock_desk[idx].inq.flags = 0;
-
   
   struct epoll_event ev;
   memset ( &ev, 0, sizeof (ev) );
-  ev.data.ptr = &rct -> pool.sock_desk[idx];
-  ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLET;
+
+  udata_t ud;
+  ud.data.idx = idx;
+  ud.data.key = ACCEPT_KEY;
+
+  ev.data.u64 = ud.u64;
+  ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
   if ( 0 != epoll_ctl ( rct -> pool.epfd, EPOLL_CTL_ADD, listn_sock, &ev ) ) {
 
     ERROR_MSG ( "epoll_ctl failed\n" );
@@ -106,7 +112,7 @@ int run_reactor ( run_mode_t rm ) {
     for ( i = 0; i < n; ++i ) {
 
       TRACE_MSG ( "pushing from epoll\n" );      
-      push_wrap_event_queue ( &reactor.pool.event_queue, &events[i] );
+      push_wrap_event_queue ( &reactor.pool, &events[i] );     
     }
     
   }

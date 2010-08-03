@@ -62,11 +62,25 @@ typedef struct inq_s {
   
 } inq_t;
 
+typedef struct __attribute__ ((__packed__)) data_wrap_s {
+
+  __uint32_t idx;
+  __uint32_t key;
+  
+} data_wrap_t;
+
+typedef union __attribute__ ((__transparent_union__)) udata_s {
+
+  data_wrap_t data;
+  __uint64_t u64;
+  
+} udata_t;
+
 typedef struct sock_desk_s {
 
   int sock;
   sock_type_t type;
-  int idx;
+  int key;
   data_queue_t data_queue;
   packet_t send_pack;
   packet_t recv_pack;

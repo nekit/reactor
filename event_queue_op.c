@@ -40,17 +40,7 @@ int init_event_queue ( event_queue_t * eq ) {
 }
 
 void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
-
-  /*  
-  static int cnt = 1000000;
-  cnt--;
-  if ( cnt <= 0 ) {
-    printf ( "%d\n", semval ( &eq -> used ) );
-    cnt = 1000000;
-  }
-  */
-  
-
+   
   eventq_t * t = malloc ( sizeof ( eventq_t) );  
   if ( NULL == t ) {
 
@@ -59,6 +49,13 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
   }
 
   pthread_mutex_lock ( &eq -> write_mutex );
+
+  static int cnt = 1000000;
+  cnt--;
+  if ( cnt <= 0 ) {
+    printf ( "%d\n", semval ( &eq -> used ) );
+    cnt = 1000000;
+  }
 
   eq -> tail -> ev = *ev;
   eq -> tail -> prev = t;
@@ -86,10 +83,11 @@ void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
   TRACE_MSG ( "event poped\n" );
 }
 
-void push_wrap_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
+void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
 
-
-  sock_desk_t * sd_p = ev -> data.ptr;
+  udata_t ud = { .u64 = ev -> data.u64 };
+  sock_desk_t * sd_p = &rp_p -> sock_desk[ ud.data.idx ];
+  event_queue_t * eq = &rp_p -> event_queue;
   inq_t * inq_p = &sd_p -> inq;
   __uint32_t t = 0;
 
@@ -106,11 +104,14 @@ void push_wrap_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
   pthread_mutex_unlock  ( &inq_p -> mutex );  
 }
 
-void pop_wrap_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
+void pop_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
+
+  event_queue_t * eq = &rp_p -> event_queue;
 
   pop_event_queue ( eq, ev );
 
-  sock_desk_t * sd_p = ev -> data.ptr;
+  udata_t ud = { .u64 = ev -> data.u64 };
+  sock_desk_t * sd_p = &rp_p -> sock_desk[ ud.data.idx ];
   inq_t * inq_p = &sd_p -> inq;
   // remove events
   pthread_mutex_lock ( &inq_p -> mutex );
