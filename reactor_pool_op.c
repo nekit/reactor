@@ -1,6 +1,7 @@
 #include "reactor_pool_op.h"
 #include "event_queue_op.h"
 #include "int_queue_op.h"
+#include "data_queue_op.h"
 #include "log.h"
 #include <memory.h>
 
@@ -19,13 +20,39 @@ int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n ) {
 
   memset ( rct_pool_p -> sock_desk, 0, sizeof (rct_pool_p -> sock_desk) );
 
+  int i;
+  // initing sock_desk[]
+  for ( i = 0; i < rct_pool_p -> max_n; ++i ) {
+
+    sock_desk_t * sd_p = &rct_pool_p -> sock_desk[i];
+    init_data_queue ( &sd_p -> data_queue );
+    if ( 0 != pthread_mutex_init ( &sd_p -> inq.mutex, NULL) ) {
+      
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
+    
+    if ( 0 != pthread_mutex_init ( &sd_p -> read_mutex, NULL ) ) {
+      
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
+    
+    if ( 0 != pthread_mutex_init ( &sd_p -> write_mutex, NULL ) ) {
+      
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
+  
+  }
+  
   if ( 0 != init_event_queue ( &rct_pool_p -> event_queue ) )
     return -1;
 
   if ( 0 != init_int_queue ( &rct_pool_p -> idx_queue, rct_pool_p -> max_n ) )
     return -1;
 
-  int i;
+  
   for ( i = 0; i < rct_pool_p -> max_n; ++i )
     push_int_queue ( &rct_pool_p -> idx_queue, i );
 

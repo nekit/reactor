@@ -50,12 +50,14 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
   pthread_mutex_lock ( &eq -> write_mutex );
 
+  /*
   static int cnt = 1000000;
   cnt--;
   if ( cnt <= 0 ) {
     printf ( "%d\n", semval ( &eq -> used ) );
     cnt = 1000000;
   }
+  */
 
   eq -> tail -> ev = *ev;
   eq -> tail -> prev = t;

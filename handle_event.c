@@ -22,31 +22,13 @@ int init_sock ( sock_desk_t * sd_p, int sock ) {
   sd_p -> key = key++;  
   sd_p -> sock = sock;
   sd_p -> type = ST_DATA;
-  if ( 0 != init_data_queue ( &sd_p -> data_queue ) ) {
-
-    ERROR_MSG ( "init_data_queue failed\n" );
-    return -1;
-  }
-  
   sd_p -> send_ofs = sizeof ( sd_p -> send_pack );
   sd_p -> recv_ofs = 0;
   sd_p -> inq.flags = 0;
-  
-  if ( 0 != pthread_mutex_init ( &sd_p -> inq.mutex, NULL) ) {
-    
-    ERROR_MSG ( "pthread_mutex_init failed\n" );
-    return -1;
-  }
-  
-  if ( 0 != pthread_mutex_init ( &sd_p -> read_mutex, NULL ) ) {
-    
-    ERROR_MSG ( "pthread_mutex_init failed\n" );
-    return -1;
-  }
-  
-  if ( 0 != pthread_mutex_init ( &sd_p -> write_mutex, NULL ) ) {
-    
-    ERROR_MSG ( "pthread_mutex_init failed\n" );
+
+  if ( 0 != reinit_data_queue ( &sd_p -> data_queue ) ) {
+
+    ERROR_MSG ( "init_data_queue failed\n" );
     return -1;
   }
   
@@ -58,28 +40,7 @@ int deinit_sock ( sock_desk_t * sd_p ) {
   close ( sd_p -> sock );
   sd_p -> sock = -1;
   sd_p -> key = -1;
-  deinit_data_queue ( &sd_p -> data_queue );
 
-  if ( 0 != pthread_mutex_destroy ( &sd_p -> inq.mutex) ) {
-
-      ERROR_MSG ( "pthread_mutex_destroy failed\n" );
-      return -1;
-    }
-
-
-  if ( 0 != pthread_mutex_destroy ( &sd_p -> read_mutex ) ) {
-
-    ERROR_MSG ( "pthread_mutex_destroy failed\n" );
-    //perror ("destroy");
-    return -1;
-  }
-  
-  if ( 0 != pthread_mutex_destroy ( &sd_p -> write_mutex ) ) {
-
-    ERROR_MSG ( "pthread_mutex_destroy failed\n" );
-    return -1;
-  }  
-  
   return 0;
 }
 
@@ -90,7 +51,11 @@ int handle_error ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
   sock_desk_t * sd_p = &rp_p -> sock_desk [ ud.data.idx ];
-  epoll_ctl ( rp_p -> epfd, EPOLL_CTL_DEL, sd_p -> sock, NULL );  
+  if ( 0 != epoll_ctl ( rp_p -> epfd, EPOLL_CTL_DEL, sd_p -> sock, NULL ) ) {
+
+    ERROR_MSG ( "epoll_ctl failed EPOLL_CTL_DEL\n" );
+    return -1;
+  }
   deinit_sock ( sd_p );  
   push_int_queue ( &rp_p -> idx_queue, ud.data.idx );
 

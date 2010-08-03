@@ -22,6 +22,23 @@ int init_data_queue ( data_queue_t * dq ) {
   return 0;
 }
 
+int reinit_data_queue ( data_queue_t * dq ) {
+
+  if ( 0 != sem_destroy ( &dq -> used) ) {
+
+    ERROR_MSG ( "reinit_data_queue\n" );
+    return -1;
+  }
+
+  if ( 0 != sem_destroy ( &dq -> empty) ) {
+
+    ERROR_MSG ( "reinit_data_queue\n" );
+    return -1;
+  }
+
+  return init_data_queue ( dq );
+}
+
 void push_data_queue ( data_queue_t *dq, packet_t * pack ) {
 
   sem_wait ( &dq -> empty ); 
