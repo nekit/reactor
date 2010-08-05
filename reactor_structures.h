@@ -104,12 +104,32 @@ typedef struct int_queue_s {
     
 } int_queue_t;
 
+typedef struct event_heap_element_s {
+
+  struct timespec time;
+  struct epoll_event ev;  
+  
+} event_heap_element_t;
+
+typedef struct event_heap_s {
+
+  // capacity of the heap
+  int cap;
+  sem_t size;
+  event_heap_element_t * ev;
+  pthread_mutex_t mutex;
+  pthread_cond_t sleep_cond;
+  pthread_mutex_t sleep_mutex;
+  
+} event_heap_t;
+
 typedef struct reactor_pool_s {
 
   int max_n;
   int epfd;
   sock_desk_t * sock_desk;  
   event_queue_t event_queue;
+  event_heap_t event_heap;
   int_queue_t idx_queue;  
   
 } reactor_pool_t;
@@ -141,6 +161,5 @@ typedef struct run_mode_s {
   int workers;
   
 } run_mode_t;
-
 
 #endif /* End of REACTOR_STRUCTURES_H */

@@ -54,6 +54,7 @@ int handle_error ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   if ( 0 != epoll_ctl ( rp_p -> epfd, EPOLL_CTL_DEL, sd_p -> sock, NULL ) ) {
 
     ERROR_MSG ( "epoll_ctl failed EPOLL_CTL_DEL\n" );
+    perror ( "EPOLL_CTL_DEL" );
     return -1;
   }
   deinit_sock ( sd_p );  

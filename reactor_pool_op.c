@@ -7,6 +7,8 @@
 
 int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n ) {
 
+  //TODO initing event heap
+
   TRACE_MSG ( "initing reactor pool %d\n", max_n );
 
   rct_pool_p -> max_n = max_n;
