@@ -43,7 +43,7 @@ void * client_shedule ( void * arg ) {
 
 	// to struct timeval
 	next.tv_sec = mine.time.tv_sec;
-	next.tv_usec = mine.time.tv_nsec * 1000;
+	next.tv_usec = mine.time.tv_nsec / 1000;
 
 	// compare now and next
 	if ( cmp_timeval ( &now, &next ) >= 0 ) {

@@ -8,6 +8,11 @@
 #include "parse_args.h"
 #include "log.h"
 
+static char * rm_names[] = {
+  [R_REACTOR_CLIENT] = "reactor_client",
+  [R_REACTOR_SERVER] = "reactor_server",
+};
+
 int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   
   strcpy(rm -> ip_addr , DEFAULT_IP);
@@ -15,7 +20,9 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> max_users = DEFAULT_MAX_USERS;
   rm -> listn_backlog = DEFAULT_LISTN_BACKLOG;
   rm -> workers = DEFAULT_WORKER_AMOUNT;
+  rm -> mode = DEFAULT_REACTOR_MODE;
 
+  int i;
   int res;  
   while ( (res = getopt(argc,argv,"s:p:u:w:L:")) != -1) {
     switch (res){
@@ -53,6 +60,21 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
       break;
     case 'w':
       rm -> workers = atoi ( optarg );
+      break;
+
+    case 'm':
+      for ( i = 0; i < sizeof (rm_names) / sizeof (rm_names[0]); ++i )
+	if (rm_names[i] != 0)
+	  if ( 0 == strcasecmp (rm_names[i], optarg) ) {
+	    rm -> mode = i;
+	    break;
+	  }
+      
+      if ( i >= sizeof (rm_names) / sizeof (rm_names[0]) ) {
+	printf ( "Unknown mode: %s\n", optarg );
+	rm -> mode = DEFAULT_REACTOR_MODE;	// server for default
+      }
+
       break;
     }
     

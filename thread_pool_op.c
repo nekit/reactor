@@ -33,9 +33,9 @@ int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
 
     ERROR_MSG ( "memory problem: malloc\n" );
     return -1;
-  }
+  }  
 
-  //
+  // handlers
   tp -> handle_event = handle_event;
 
   return 0;  

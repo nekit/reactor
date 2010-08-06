@@ -15,6 +15,7 @@
 #define DEFAULT_MAX_USERS 1000
 #define DEFAULT_LISTN_BACKLOG 1000
 #define DEFAULT_WORKER_AMOUNT 8
+#define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -76,9 +77,13 @@ typedef union __attribute__ ((__transparent_union__)) udata_s {
   
 } udata_t;
 
+// TODO separate sock_desk
 typedef struct sock_desk_s {
 
   int sock;
+  int sock_dup;
+  int timeout; // in milliseconds
+  uint32_t send_idx;
   sock_type_t type;
   int key;
   data_queue_t data_queue;
@@ -123,6 +128,13 @@ typedef struct event_heap_s {
   
 } event_heap_t;
 
+typedef struct statistic_s {
+
+  int val;
+  pthread_mutex_t mutex;
+  
+} statistic_t;
+
 typedef struct reactor_pool_s {
 
   int max_n;
@@ -130,7 +142,8 @@ typedef struct reactor_pool_s {
   sock_desk_t * sock_desk;  
   event_queue_t event_queue;
   event_heap_t event_heap;
-  int_queue_t idx_queue;  
+  int_queue_t idx_queue;
+  statistic_t statistic;
   
 } reactor_pool_t;
 
@@ -152,6 +165,14 @@ typedef struct reactor_s {
   
 } reactor_t;
 
+typedef enum {
+
+  R_REACTOR_CLIENT,
+  R_REACTOR_SERVER,
+  R_LAST,
+  
+} reactor_mode_t;
+
 typedef struct run_mode_s {
 
   int port;
@@ -159,6 +180,7 @@ typedef struct run_mode_s {
   int max_users;
   int listn_backlog;
   int workers;
+  reactor_mode_t mode;
   
 } run_mode_t;
 
