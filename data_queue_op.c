@@ -1,6 +1,7 @@
 #include "data_queue_op.h"
 #include "log.h"
 #include <memory.h>
+#include <stdio.h>
 
 int init_data_queue ( data_queue_t * dq ) {
 
@@ -39,28 +40,27 @@ int reinit_data_queue ( data_queue_t * dq ) {
   return init_data_queue ( dq );
 }
 
-void push_data_queue ( data_queue_t *dq, packet_t * pack ) {
+void push_data_queue ( data_queue_t *dq, packet_t pack ) {
 
-  sem_wait ( &dq -> empty ); 
-
-  memcpy ( dq -> pack[dq -> tail], pack, sizeof (pack) );
-  if ( DATA_QUEUE_SIZE == ++dq -> tail )
+  sem_wait ( &dq -> empty );
+  
+  memcpy ( dq -> pack[dq -> tail], pack, PACKET_SIZE );
+  if ( DATA_QUEUE_SIZE == ++dq -> tail )    
     dq -> tail = 0;
 
   sem_post ( &dq -> used );  
 }
 
-int pop_data_queue ( data_queue_t * dq, packet_t * pack ) {
+int pop_data_queue ( data_queue_t * dq, packet_t pack ) {
 
   if ( 0 != sem_trywait ( &dq -> used ) )
     return -1;
 
-  memcpy ( pack, dq -> pack[dq -> head], sizeof (pack) );
+  memcpy ( pack, dq -> pack[dq -> head], PACKET_SIZE);  
   if ( DATA_QUEUE_SIZE == ++dq -> head )
-    dq -> head = 0;
+    dq -> head = 0;  
 
   sem_post ( &dq -> empty );
-
   return 0;
 }
 

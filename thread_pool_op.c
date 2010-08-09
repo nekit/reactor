@@ -2,6 +2,7 @@
 #include "event_queue_op.h"
 #include "log.h"
 #include "handle_event.h"
+#include "client_handle_event.h"
 #include <memory.h>
 #include <stdlib.h>
 
@@ -22,7 +23,7 @@ void * work ( void * arg ) {
   return NULL;
 }
 
-int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
+int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp, int mode ) {
 
   TRACE_MSG ( "thread poll initializing %d\n", n );
   
@@ -36,7 +37,10 @@ int init_thread_pool ( thread_pool_t * tp, int n, reactor_pool_t * rp ) {
   }  
 
   // handlers
-  tp -> handle_event = handle_event;
+  if ( R_REACTOR_SERVER == mode )
+    tp -> handle_event = handle_event;
+  if ( R_REACTOR_CLIENT == mode )
+    tp -> handle_event = client_handle_event;
 
   return 0;  
 }

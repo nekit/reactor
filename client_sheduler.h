@@ -3,4 +3,6 @@
 
 #include "reactor_structures.h"
 
+void * client_shedule ( void * arg );
+
 #endif

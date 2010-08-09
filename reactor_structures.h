@@ -6,14 +6,14 @@
 #include <sys/epoll.h>
 #include <semaphore.h>
 
-#define DATA_QUEUE_SIZE 100000
+#define DATA_QUEUE_SIZE 32
 #define EVENT_QUEUE_SIZE 1000000
 #define EPOLL_TIMEOUT 100
 
 #define DEFAULT_PORT 2007
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_MAX_USERS 1000
-#define DEFAULT_LISTN_BACKLOG 1000
+#define DEFAULT_LISTN_BACKLOG 10000
 #define DEFAULT_WORKER_AMOUNT 8
 #define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
 #define IP_ADDR_SIZE 20
@@ -130,7 +130,7 @@ typedef struct event_heap_s {
 
 typedef struct statistic_s {
 
-  int val;
+  long long val;
   pthread_mutex_t mutex;
   
 } statistic_t;
@@ -181,6 +181,7 @@ typedef struct run_mode_s {
   int listn_backlog;
   int workers;
   reactor_mode_t mode;
+  int n;
   
 } run_mode_t;
 

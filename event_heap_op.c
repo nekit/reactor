@@ -81,7 +81,7 @@ static void event_heap_push_h ( event_heap_element_t * ev, int size, int i ) {
   }
 }
 
-static void event_heap_lift ( event_heap_element_t * ev, int idx ) {
+static int event_heap_lift ( event_heap_element_t * ev, int idx ) {
 
   while ( 0 != idx ) {
 
@@ -90,8 +90,10 @@ static void event_heap_lift ( event_heap_element_t * ev, int idx ) {
       eh_swap ( ev, idx, eh_parent(idx));
       idx = eh_parent (idx);      
     } else
-      break;
+      return idx;
   }
+
+  return 0;
 }
 
 int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
@@ -143,7 +145,7 @@ int event_heap_peekmin ( event_heap_t * eh, event_heap_element_t * el ) {
   return 0;
 }
 
-int event_heap_insert ( event_heap_t * eh, event_heap_element_t * el ) {
+int event_heap_insert ( event_heap_t * eh, event_heap_element_t * el, int * ridx ) {
 
   pthread_mutex_lock ( &eh -> mutex );
   
@@ -164,7 +166,7 @@ int event_heap_insert ( event_heap_t * eh, event_heap_element_t * el ) {
   }
 
   eh -> ev[size] = *el;
-  event_heap_lift ( eh -> ev, size );
+  *ridx = event_heap_lift ( eh -> ev, size );
   sem_post ( &eh -> size );
 
   pthread_mutex_unlock ( &eh -> mutex );

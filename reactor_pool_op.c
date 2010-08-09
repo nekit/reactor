@@ -5,6 +5,7 @@
 #include "event_heap_op.h"
 #include "log.h"
 #include <memory.h>
+#include <stdlib.h>
 
 int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode ) {
 

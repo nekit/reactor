@@ -21,10 +21,11 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> listn_backlog = DEFAULT_LISTN_BACKLOG;
   rm -> workers = DEFAULT_WORKER_AMOUNT;
   rm -> mode = DEFAULT_REACTOR_MODE;
+  rm -> n = 1;
 
   int i;
   int res;  
-  while ( (res = getopt(argc,argv,"s:p:u:w:L:")) != -1) {
+  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:")) != -1) {
     switch (res){
        case 's':
 	 stpcpy(rm -> ip_addr, optarg);
@@ -75,6 +76,9 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
 	rm -> mode = DEFAULT_REACTOR_MODE;	// server for default
       }
 
+      break;
+    case 'n':
+      rm -> n = atoi ( optarg );
       break;
     }
     

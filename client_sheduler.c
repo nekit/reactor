@@ -17,6 +17,8 @@ void * client_shedule ( void * arg ) {
 
   reactor_pool_t * rp_p = arg;
 
+  TRACE_MSG ( "scheduler thread started\n" );
+
   for ( ; ; ) {
 
     struct timespec stime;
@@ -62,6 +64,8 @@ void * client_shedule ( void * arg ) {
     } // end of getmin loop
 
     // timedwait...
+
+    TRACE_MSG ( "scheduler sleep\n" );
     pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
     pthread_cond_timedwait ( &rp_p -> event_heap.sleep_cond, &rp_p -> event_heap.sleep_mutex, &stime );
     pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );

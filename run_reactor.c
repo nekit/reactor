@@ -4,18 +4,94 @@
 #include "thread_pool_op.h"
 #include "int_queue_op.h"
 #include "event_queue_op.h"
+#include "data_queue_op.h"
 #include "log.h"
+#include "thread_statistics.h"
+#include "client_sheduler.h"
 
 #include <arpa/inet.h>
 #include <memory.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define ACCEPT_KEY 0
 
-//static int connect_client ( ) {
-//}
+static int client_sock_desk_init ( sock_desk_t * sd_p ) {
+
+  //duplicate sock
+  sd_p -> sock_dup = dup ( sd_p -> sock );
+  if ( -1 == sd_p -> sock_dup ) {
+
+    ERROR_MSG ( "duplicate sock failed\n" );
+    return -1;
+  }
+
+  // hardcode 100ms timeout (TODO...)
+  sd_p -> timeout = 100;
+  //hardcode send_idx = 1
+  sd_p -> send_idx = 1;
+  //sock type
+  sd_p -> type = ST_DATA;
+  //init_data_queue  
+
+  // fill recv_pack
+  memset ( sd_p -> recv_pack, 0, sizeof (sd_p -> recv_pack) );
+  // fill send_pack
+  memcpy ( sd_p -> send_pack, &sd_p -> send_idx, sizeof (sd_p -> send_idx) );
+
+  //set offset
+  sd_p -> send_ofs = 0;  
+  sd_p -> recv_ofs = 0;
+
+  return 0;
+}
+
+static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_pool_t * rp_p ) {
+
+  sock_desk_t * sd_p = &rp_p -> sock_desk[idx];
+
+  // connecting =)
+  sd_p -> sock = connect_to_server ( server_ip, port );
+  if ( -1 == sd_p -> sock ) {
+
+    ERROR_MSG ( "connection to server failed\n" );
+    return -1;
+  }
+
+  //init sock_desk
+  if ( 0 != client_sock_desk_init (sd_p) ) {
+
+    ERROR_MSG ( "client_sock_desk_init failed\n" );
+    return -1;
+  }
+
+  //register to epoll...
+  udata_t ud = { .data.idx = idx, .data.key = 0 };
+  struct epoll_event ev;
+  ev.data.u64 = ud.u64;
+  // register for recv
+  ev.events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
+  if ( 0 != epoll_ctl ( rp_p -> epfd, EPOLL_CTL_ADD, sd_p -> sock, &ev ) ) {
+
+    ERROR_MSG ( "epoll_ctl failed\n" );
+    return -1;
+  }
+  // register for send
+  ev.events = EPOLLOUT | EPOLLET | EPOLLONESHOT;
+  if ( 0 != epoll_ctl ( rp_p -> epfd, EPOLL_CTL_ADD, sd_p -> sock_dup, &ev ) ) {
+
+    ERROR_MSG ( "epoll_ctl failed\n" );
+    return -1;
+  }
+
+  // inform
+  static int cnt = 1;
+  INFO_MSG ( "client connected %d\n", cnt++ );
+
+  return 0;
+}
 
 static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
 
@@ -29,7 +105,7 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
     return -1;
   }
 
-  if ( 0 != init_thread_pool ( &rct -> thread_pool, rct -> workers, &rct -> pool ) ){
+  if ( 0 != init_thread_pool ( &rct -> thread_pool, rct -> workers, &rct -> pool, rm -> mode ) ){
 
     ERROR_MSG ( "init_thread_pool failed\n" );
     return -1;
@@ -106,7 +182,33 @@ int run_reactor ( run_mode_t rm ) {
 
   if ( R_REACTOR_CLIENT == rm.mode ) {
 
-    // TODO ...
+    // TODO normal statistic
+
+    // start sheduler
+    pthread_t sheduler_thread;
+    if ( 0 != pthread_create ( &sheduler_thread, NULL, client_shedule, (void*) &reactor.pool ) ){
+
+      ERROR_MSG ( "scheduler thread failed to start\n" );
+      return -1;
+    }
+
+    // start statistic
+    pthread_t stat_thread;
+    if ( 0 != pthread_create ( &stat_thread, NULL, get_statistics, (void *) &reactor.pool.statistic)) {
+
+      ERROR_MSG ( "stat_thread failed\n" );
+      return -1;
+    }
+
+    uint32_t serv_ip = inet_addr ( rm.ip_addr );
+    uint16_t port = htons ( rm.port );
+    int i;
+    for ( i = 0; i < rm.n; ++i )
+      if ( 0 != connect_client ( serv_ip, port, i, &reactor.pool ) ) {
+
+	ERROR_MSG ( "failed to connect client %d\n", i );
+	return -1;
+      }
   }
 
   struct epoll_event events [ 10 * reactor.max_n ];

@@ -1,5 +1,5 @@
 #include "int_queue_op.h"
-#include "memory.h"
+#include <stdlib.h>
 #include "log.h"
 
 int init_int_queue ( int_queue_t * iq, int n ) {

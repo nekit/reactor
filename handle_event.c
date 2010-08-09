@@ -152,7 +152,7 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   tmp_r.data = ev -> data;
   tmp_r.events = EPOLLIN | EPOLLOUT;
   
-  push_data_queue ( &sd_p -> data_queue, &sd_p -> recv_pack );
+  push_data_queue ( &sd_p -> data_queue, sd_p -> recv_pack );
   sd_p -> recv_ofs = 0;
   int empty = -1;
   sem_getvalue ( &sd_p -> data_queue.empty, &empty );
@@ -179,18 +179,22 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   }
   
   DEBUG_MSG ( "handling write event\n" );
+  TRACE_MSG ( "begin sd_p: %p\n", sd_p );    
 
   static __thread struct epoll_event tmp_w;
   tmp_w.data = ev -> data;
 
   if ( sizeof ( sd_p -> send_pack ) == sd_p -> send_ofs ) {
 
-    if ( 0 != pop_data_queue (&sd_p -> data_queue, &sd_p -> send_pack ) ) {
+    if ( 0 != pop_data_queue (&sd_p -> data_queue, sd_p -> send_pack ) ) {
 
       TRACE_MSG ( "nothing to send O_O\n" );
       return 0;
     }
+
+    TRACE_MSG ( "poped success\nsd_p: %p\n", sd_p );
     sd_p -> send_ofs = 0;
+    TRACE_MSG ( "send_ofs success\n" );
 
     if ( ST_NOT_ACTIVE == sd_p -> type ) {
 
