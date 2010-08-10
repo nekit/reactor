@@ -44,7 +44,8 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
 
   struct timeval now;
   gettimeofday ( &now, NULL );
-  now.tv_usec += t * 1000;
+  // flood!!!
+  now.tv_usec += 0; // t * 1000;
   event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };  
 
   // signal ^_^
@@ -206,12 +207,16 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   sd_p -> send_ofs = 0;
 
   // push event to event_heap...
+  // cond mutex )
+  pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
   event_out.data = ev -> data;
   if ( 0 != push_event_to_heap ( &event_out, &rp_p -> event_heap, sd_p -> timeout ) ) {
 
     ERROR_MSG ( "push_event_to_heap failed\n" );
+    pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
     return -1;
   }
+  pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
   
   return 0;
 }

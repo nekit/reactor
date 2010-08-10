@@ -22,6 +22,7 @@ void * client_shedule ( void * arg ) {
   for ( ; ; ) {
 
     struct timespec stime;
+    pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
     
     for (;;) {
       struct timeval now;
@@ -68,7 +69,6 @@ void * client_shedule ( void * arg ) {
     // timedwait...
 
     TRACE_MSG ( "scheduler sleep\n" );
-    pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
     pthread_cond_timedwait ( &rp_p -> event_heap.sleep_cond, &rp_p -> event_heap.sleep_mutex, &stime );
     pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
     TRACE_MSG ( "scheduler wake up\n" );
