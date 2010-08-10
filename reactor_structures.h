@@ -7,15 +7,15 @@
 #include <semaphore.h>
 
 #define DATA_QUEUE_SIZE 32
-#define EVENT_QUEUE_SIZE 1000000
 #define EPOLL_TIMEOUT 100
 
-#define DEFAULT_PORT 2007
-#define DEFAULT_IP "127.0.0.1"
-#define DEFAULT_MAX_USERS 1000
-#define DEFAULT_LISTN_BACKLOG 20000
+#define DEFAULT_PORT 1050
+#define DEFAULT_IP "192.168.16.152"
+#define DEFAULT_MAX_USERS 100000
+#define DEFAULT_LISTN_BACKLOG 30000
 #define DEFAULT_WORKER_AMOUNT 8
 #define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
+#define DEFAULT_LOG_LEVEL "INFO"
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -30,18 +30,14 @@ typedef struct data_queue_s {
   
 } data_queue_t;
 
-typedef struct eventq_s {
-
-  struct epoll_event ev;
-  struct eventq_s * prev; 
-  
-} eventq_t;
-
 typedef struct event_queue_s {
 
-  eventq_t * head;
-  eventq_t * tail;
+  struct epoll_event * ev;
+  int head;
+  int tail;
+  int cap;
   sem_t used;
+  sem_t empty;
   pthread_mutex_t read_mutex;
   pthread_mutex_t write_mutex;
   

@@ -56,7 +56,7 @@ int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode, int cn
       
   } // end of for
   
-  if ( 0 != init_event_queue ( &rct_pool_p -> event_queue ) )
+  if ( 0 != init_event_queue ( &rct_pool_p -> event_queue, max_n ) )
     return -1;
 
   if ( 0 != init_int_queue ( &rct_pool_p -> idx_queue, rct_pool_p -> max_n ) )

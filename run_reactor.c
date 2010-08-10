@@ -64,6 +64,7 @@ static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_
   if ( -1 == sd_p -> sock ) {
 
     ERROR_MSG ( "connection to server failed\n" );
+    perror("connect problem");
     return -1;
   }
 

@@ -22,6 +22,7 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> workers = DEFAULT_WORKER_AMOUNT;
   rm -> mode = DEFAULT_REACTOR_MODE;
   rm -> n = 1;
+  INIT_LOG_LEVEL( DEFAULT_LOG_LEVEL );
 
   int i;
   int res;  

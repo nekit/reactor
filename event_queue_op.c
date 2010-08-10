@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int semval ( sem_t * sem_p ) {
+static int semval ( sem_t * sem_p ) {
 
   int val;
   sem_getvalue ( sem_p, &val );
@@ -12,11 +12,27 @@ int semval ( sem_t * sem_p ) {
 }
 
 
-int init_event_queue ( event_queue_t * eq ) {
+int init_event_queue ( event_queue_t * eq, int n ) {
 
-  eventq_t * t = malloc ( sizeof ( eventq_t ) );
-  eq -> head = eq -> tail = t;
+  // set event_queue size
+  // 10 * n !!!
+  eq -> cap = 10 * n;
+  // set head & tail
+  eq -> head = eq -> tail = 0;
 
+  // malloc memory for events
+  eq -> ev = malloc ( eq -> cap * sizeof (struct epoll_event) );
+  if ( NULL == eq -> ev ) {
+
+    ERROR_MSG ( "out of memory\n" );
+    return -1;
+  }
+
+  if ( 0 != sem_init ( &eq -> empty, 0, eq -> cap ) ) {
+
+    ERROR_MSG ( "sem init failed\n" );
+    return -1;
+  }  
 
   if ( 0 != sem_init ( &eq -> used, 0, 0 ) ) {
 
@@ -39,29 +55,27 @@ int init_event_queue ( event_queue_t * eq ) {
   return 0;
 }
 
+// TODO return value
+// push can failed ?
+
 void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
-   
-  eventq_t * t = malloc ( sizeof ( eventq_t) );  
-  if ( NULL == t ) {
 
-    ERROR_MSG ( "Out of memory!!!!\n" );
-    return;
-  }
-
+  sem_wait ( &eq -> empty );
   pthread_mutex_lock ( &eq -> write_mutex );
 
-  
+  // ============================= some statistic section
   static int cnt = 1000000;
   cnt--;
   if ( cnt <= 0 ) {
     printf ( "%d\n", semval ( &eq -> used ) );
     cnt = 1000000;
   }
-  
+  //=============================== *
 
-  eq -> tail -> ev = *ev;
-  eq -> tail -> prev = t;
-  eq -> tail = t;
+  eq -> ev[ eq -> tail ] = *ev;
+  //cycle queue
+  if ( eq -> cap == ++eq -> tail )
+    eq -> tail = 0;  
 
   pthread_mutex_unlock ( &eq -> write_mutex );
   sem_post ( &eq -> used );
@@ -69,20 +83,16 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
 void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
-  TRACE_MSG ( "poping...\n" );
-
   sem_wait ( &eq -> used );
   pthread_mutex_lock ( &eq -> read_mutex );
 
-  *ev = eq -> head -> ev;
-  eventq_t * t = eq -> head;
-  eq -> head = eq -> head -> prev;
-  
-  pthread_mutex_unlock ( &eq -> read_mutex );  
-    
-  free ( t );  
-    
-  TRACE_MSG ( "event poped\n" );
+  *ev = eq -> ev[ eq -> head ];
+  // cycle queue
+  if ( eq -> cap == ++eq -> head )
+    eq -> head = 0;
+
+  pthread_mutex_unlock ( &eq -> read_mutex );
+  sem_post ( &eq -> empty );  
 }
 
 void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
