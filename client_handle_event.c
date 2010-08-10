@@ -13,7 +13,7 @@
 static int val_of ( const packet_t p ) {
 
   uint32_t val;
-  memcpy ( &val, p, sizeof (p) );
+  memcpy ( &val, p, PACKET_SIZE );
   return val;   
 }
 
@@ -21,8 +21,8 @@ static int packet_cmp ( const packet_t p1, const packet_t p2 ) {
 
   uint32_t v1;
   uint32_t v2;
-  memcpy ( &v1, p1, sizeof (p1) );
-  memcpy ( &v2, p2, sizeof (p2) );
+  memcpy ( &v1, p1, PACKET_SIZE );
+  memcpy ( &v2, p2, PACKET_SIZE );
   
   return (v1 - v2);
 }
@@ -68,7 +68,6 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
 
 static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
-  TRACE_MSG ( "handling read event\n" );
 
   static __thread struct epoll_event event_in = { .events = EPOLLIN };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
@@ -93,15 +92,17 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
   // update offset !!! =)
   sd_p -> recv_ofs = 0;
 
+  TRACE_MSG ( "poping data queue...\n" );
+  
   // pop sended packet
   packet_t sended;
-  if ( 0 != pop_data_queue ( &sd_p -> data_queue, sended ) ) {
+  if ( 0 != pop_data_queue_f ( &sd_p -> data_queue, sended ) ) {
 
-    ERROR_MSG ( "pop_data_queue: recieved something wrong O_O\n" );
+    ERROR_MSG ( "pop_data_queue: recieved something wrong O_O\n some strange data\n" );
     return -1;
   }
 
- 
+  TRACE_MSG ( "poped data queue...\n" ); 
   
   // compare sd_p -> recv_pack & sended
   if ( 0 != packet_cmp ( sd_p -> recv_pack, sended ) ) {
@@ -109,8 +110,7 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
     ERROR_MSG ( "packet_cmp: recieved something wrong O_O\n recv_pack: %d\n sended: %d\n", val_of (sd_p -> recv_pack), val_of (sended) );
     return -1;
   }
- 
-
+  
   // update statistic
   TRACE_MSG ( "recieve successfully, update statistic\n" );
   update_statistic ( &rp_p -> statistic );
@@ -133,8 +133,6 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
 
 int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
-  TRACE_MSG ( "handle write event\n" );
-
   static __thread struct epoll_event event_rwout = { .events = EPOLLOUT | EPOLLET | EPOLLONESHOT };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
   udata_t ud = { .u64 = ev -> data.u64 };
@@ -146,7 +144,7 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     TRACE_MSG ( "write not active\n" );
     return 0;
   }
-
+  
   // check empty slots
   int empty = -1;
   if ( 0 != sem_getvalue (&sd_p -> data_queue.empty, &empty) ) {
@@ -248,8 +246,10 @@ int client_handle_event ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
     if ( 0 == pthread_mutex_trylock ( &sd_p -> read_mutex ) ) {
 
+      TRACE_MSG ( "handling read event\n" );
       client_handle_read ( ev, rp_p );
       pthread_mutex_unlock ( &sd_p -> read_mutex );
+      TRACE_MSG ( "read event handled\n" );
     } else {
       
       event_in.data = ev -> data;
@@ -262,8 +262,10 @@ int client_handle_event ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
     if ( 0 == pthread_mutex_trylock ( &sd_p -> write_mutex ) ) {
 
+      TRACE_MSG ( "handling write event\n" );
       client_handle_write ( ev, rp_p );
       pthread_mutex_unlock ( &sd_p -> write_mutex );
+      TRACE_MSG ( "write event handled\n" );	
     } else {
 
       event_out.data = ev -> data;

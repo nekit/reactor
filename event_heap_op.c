@@ -9,6 +9,8 @@
 
 int event_heap_init ( event_heap_t * eh, int n ) {
 
+  n += 10; // TODO
+
   eh -> ev = malloc ( n * sizeof (event_heap_element_t) );
   if ( NULL == eh -> ev ) {
 
@@ -41,6 +43,7 @@ int event_heap_init ( event_heap_t * eh, int n ) {
   }
 
   eh -> cap = n;
+  INFO_MSG ( "event_heap size: %d\n", n );
 
   return 0;
 }

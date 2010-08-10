@@ -13,7 +13,7 @@
 #define DEFAULT_PORT 2007
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_MAX_USERS 1000
-#define DEFAULT_LISTN_BACKLOG 10000
+#define DEFAULT_LISTN_BACKLOG 20000
 #define DEFAULT_WORKER_AMOUNT 8
 #define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
 #define IP_ADDR_SIZE 20
@@ -158,6 +158,7 @@ typedef struct thread_pool_s {
 
 typedef struct reactor_s {
 
+  int cn;
   int max_n;
   int workers;
   thread_pool_t thread_pool;

@@ -99,6 +99,7 @@ void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
   inq_p -> flags = inq_p -> flags | t;
 
   if ( t > 0 ) {
+    TRACE_MSG ( "really push event\n" );
     ev -> events = t;
     push_event_queue ( eq, ev );
   }
@@ -119,5 +120,4 @@ void pop_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
   pthread_mutex_lock ( &inq_p -> mutex );
   inq_p -> flags = inq_p -> flags ^ ev -> events;
   pthread_mutex_unlock ( &inq_p -> mutex );
-
 }

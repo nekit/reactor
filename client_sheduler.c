@@ -38,6 +38,7 @@ void * client_shedule ( void * arg ) {
 	}
 
 	// set infinum sleep time ????
+	TRACE_MSG ( "sleep indefinably..." );
 	stime.tv_sec = LONG_MAX;
 	break;
 	
@@ -50,6 +51,7 @@ void * client_shedule ( void * arg ) {
 	// compare now and next
 	if ( cmp_timeval ( &now, &next ) >= 0 ) {
 
+	  TRACE_MSG ( "push event to event queue\n" );
 	  push_wrap_event_queue ( rp_p, &mine.ev );
 	  event_heap_getmin ( &rp_p -> event_heap, &mine );	  
 	} else {
@@ -69,6 +71,8 @@ void * client_shedule ( void * arg ) {
     pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
     pthread_cond_timedwait ( &rp_p -> event_heap.sleep_cond, &rp_p -> event_heap.sleep_mutex, &stime );
     pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
+    TRACE_MSG ( "scheduler wake up\n" );
+      
     
   } // end of life - cycle 
 

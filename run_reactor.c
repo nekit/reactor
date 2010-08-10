@@ -28,6 +28,13 @@ static int client_sock_desk_init ( sock_desk_t * sd_p ) {
     return -1;
   }
 
+  // make non_blocking dup???? ^_^
+  if ( 0 != set_nonblock ( sd_p -> sock_dup ) ) {
+
+    ERROR_MSG ( "set_nonblock failed\n" );
+    return -1;
+  }
+
   // hardcode 100ms timeout (TODO...)
   sd_p -> timeout = 100;
   //hardcode send_idx = 1
@@ -57,6 +64,13 @@ static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_
   if ( -1 == sd_p -> sock ) {
 
     ERROR_MSG ( "connection to server failed\n" );
+    return -1;
+  }
+
+  // make non_blocking
+  if ( 0 != set_nonblock ( sd_p -> sock ) ) {
+
+    ERROR_MSG ( "set_nonblock failed\n" );
     return -1;
   }
 
@@ -99,7 +113,8 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
 
   rct -> max_n = rm -> max_users;
   rct -> workers = rm -> workers;
-  if ( 0 != init_reactor_pool ( &rct -> pool, rct -> max_n, rm -> mode ) ) {
+  rct -> cn = rm -> n;
+  if ( 0 != init_reactor_pool ( &rct -> pool, rct -> max_n, rm -> mode, rct -> cn ) ) {
 
     ERROR_MSG ( "init_reactor_pool failed\n" );
     return -1;
@@ -109,6 +124,20 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
 
     ERROR_MSG ( "init_thread_pool failed\n" );
     return -1;
+  }
+
+  // TODO normal place for this
+  if ( R_REACTOR_CLIENT == rm -> mode ) {
+
+    uint32_t serv_ip = inet_addr ( rm ->ip_addr );
+    uint16_t port = htons ( rm -> port );
+    int i;
+    for ( i = 0; i < rm -> n; ++i )
+      if ( 0 != connect_client ( serv_ip, port, i, &rct -> pool ) ) {
+	
+	ERROR_MSG ( "failed to connect client %d\n", i );
+	return -1;
+      }    
   }
 
   if ( R_REACTOR_SERVER == rm -> mode ) {
@@ -191,7 +220,7 @@ int run_reactor ( run_mode_t rm ) {
       ERROR_MSG ( "scheduler thread failed to start\n" );
       return -1;
     }
-
+    
     // start statistic
     pthread_t stat_thread;
     if ( 0 != pthread_create ( &stat_thread, NULL, get_statistics, (void *) &reactor.pool.statistic)) {
@@ -199,16 +228,6 @@ int run_reactor ( run_mode_t rm ) {
       ERROR_MSG ( "stat_thread failed\n" );
       return -1;
     }
-
-    uint32_t serv_ip = inet_addr ( rm.ip_addr );
-    uint16_t port = htons ( rm.port );
-    int i;
-    for ( i = 0; i < rm.n; ++i )
-      if ( 0 != connect_client ( serv_ip, port, i, &reactor.pool ) ) {
-
-	ERROR_MSG ( "failed to connect client %d\n", i );
-	return -1;
-      }
   }
 
   struct epoll_event events [ 10 * reactor.max_n ];

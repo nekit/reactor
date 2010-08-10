@@ -7,10 +7,11 @@
 #include <memory.h>
 #include <stdlib.h>
 
-int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode ) {
+int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode, int cn ) {
 
+  // event heap init
   if ( R_REACTOR_CLIENT == mode )
-    if ( 0 != event_heap_init ( &rct_pool_p -> event_heap, max_n ) ) {
+    if ( 0 != event_heap_init ( &rct_pool_p -> event_heap, cn ) ) {
 
       ERROR_MSG ( "event_heap_init failed\n" );
       return -1;
@@ -19,7 +20,7 @@ int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode ) {
   TRACE_MSG ( "initing reactor pool %d\n", max_n );
 
   rct_pool_p -> max_n = max_n;
-  rct_pool_p -> sock_desk = malloc ( rct_pool_p -> max_n * sizeof ( sock_desk_t) );
+  rct_pool_p -> sock_desk = malloc ( rct_pool_p -> max_n * sizeof ( sock_desk_t ) );
 
   if ( NULL == rct_pool_p -> sock_desk ) {
 

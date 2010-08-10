@@ -64,6 +64,18 @@ int pop_data_queue ( data_queue_t * dq, packet_t pack ) {
   return 0;
 }
 
+int pop_data_queue_f ( data_queue_t * dq, packet_t pack ) {
+
+  sem_wait ( &dq -> used );  
+
+  memcpy ( pack, dq -> pack[dq -> head], PACKET_SIZE);  
+  if ( DATA_QUEUE_SIZE == ++dq -> head )
+    dq -> head = 0;  
+
+  sem_post ( &dq -> empty );
+  return 0;
+}
+
 void deinit_data_queue ( data_queue_t * dq ) {
 
   sem_destroy ( &dq -> empty );
