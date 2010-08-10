@@ -13,6 +13,9 @@ static inline int cmp_timeval ( const struct timeval * a, const struct timeval *
   return (a -> tv_sec - b -> tv_sec);
 }
 
+
+// TODO lock mutex in right place ^_^
+
 void * client_shedule ( void * arg ) {
 
   reactor_pool_t * rp_p = arg;
@@ -40,7 +43,8 @@ void * client_shedule ( void * arg ) {
 
 	// set infinum sleep time ????
 	TRACE_MSG ( "sleep indefinably..." );
-	stime.tv_sec = LONG_MAX;
+		
+	stime.tv_sec = LONG_MAX;	
 	break;
 	
       } else {
@@ -57,8 +61,8 @@ void * client_shedule ( void * arg ) {
 	  event_heap_getmin ( &rp_p -> event_heap, &mine );	  
 	} else {
 
-	  // to sleep
-	  stime = mine.time;
+	  // to sleep	 
+	  stime = mine.time;	  
 	  break;
 	}	
 	

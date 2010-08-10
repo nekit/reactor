@@ -44,8 +44,9 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
 
   struct timeval now;
   gettimeofday ( &now, NULL );
-  // flood!!!
-  now.tv_usec += 0; // t * 1000;
+
+  // flood
+  now.tv_usec += 0; //t * 1000;
   event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };  
 
   // signal ^_^
