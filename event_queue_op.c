@@ -131,3 +131,9 @@ void pop_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
   inq_p -> flags = inq_p -> flags ^ ev -> events;
   pthread_mutex_unlock ( &inq_p -> mutex );
 }
+
+void free_event_queue ( event_queue_t * eq ) {
+
+  // something else O_o
+  free ( eq -> ev );
+}

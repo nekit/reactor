@@ -44,8 +44,7 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
 
   struct timeval now;
   gettimeofday ( &now, NULL );
-
-  // flood
+  
   now.tv_usec += 0; //t * 1000;
   event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };  
 
@@ -60,9 +59,11 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
   // signal to wakeup
   // TODO check reurn value
   if ( 0 == idx ) {
-
+    
+    pthread_mutex_lock ( &eh_p -> sleep_mutex );
     TRACE_MSG ( "signal to scheduler!!!\n" );
     pthread_cond_signal ( &eh_p -> sleep_cond );
+    pthread_mutex_unlock ( &eh_p -> sleep_mutex );
   }
   
   return 0;
@@ -208,16 +209,12 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   sd_p -> send_ofs = 0;
 
   // push event to event_heap...
-  // cond mutex )
-  pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
   event_out.data = ev -> data;
   if ( 0 != push_event_to_heap ( &event_out, &rp_p -> event_heap, sd_p -> timeout ) ) {
 
     ERROR_MSG ( "push_event_to_heap failed\n" );
-    pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
     return -1;
   }
-  pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
   
   return 0;
 }

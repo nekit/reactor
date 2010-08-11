@@ -99,6 +99,8 @@ static int event_heap_lift ( event_heap_element_t * ev, int idx ) {
   return 0;
 }
 
+// some mutex conflict
+
 int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
 
   int size = -1;
@@ -117,13 +119,15 @@ int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
   event_heap_element_t * ev = eh -> ev;  
   *el = ev[0];
 
-  pthread_mutex_lock ( &eh -> mutex );
+  // we garanted synchronization on upper level
+  //  pthread_mutex_lock ( &eh -> mutex );
 
   ev[0] = ev[size - 1];
   sem_wait ( &eh -> size );
   event_heap_push_h ( eh -> ev, size - 1, 0 );
 
-  pthread_mutex_unlock ( &eh -> mutex );
+  // synchronization on upper level
+  //pthread_mutex_unlock ( &eh -> mutex );
 
   return 0;
 }
