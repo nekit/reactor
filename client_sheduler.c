@@ -79,7 +79,6 @@ void * client_shedule ( void * arg ) {
       struct timeval now;
       gettimeofday ( &now, NULL );
 
-
       // mutex's...
       TRACE_MSG ( "locking mutex's...\n" );
       pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );

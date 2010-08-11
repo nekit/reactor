@@ -23,10 +23,11 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> mode = DEFAULT_REACTOR_MODE;
   rm -> n = 1;
   INIT_LOG_LEVEL( DEFAULT_LOG_LEVEL );
+  strcpy ( rm -> file, DEFAULT_FILENAME );
 
   int i;
   int res;  
-  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:")) != -1) {
+  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:F:")) != -1) {
     switch (res){
        case 's':
 	 stpcpy(rm -> ip_addr, optarg);
@@ -81,7 +82,13 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
     case 'n':
       rm -> n = atoi ( optarg );
       break;
-    }
+      
+    case 'F':
+      strcpy ( rm -> file, optarg );
+      break;
+      
+    } // end of switch
+
     
   }
   

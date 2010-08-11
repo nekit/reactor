@@ -12,6 +12,8 @@ int main ( int argc, char * argv[] ) {
   run_mode_t run_mode;
   parse_args ( argc, argv, &run_mode );
 
+  INFO_MSG ( "log file: %s\n", run_mode.file );
+
   if ( 0 != run_reactor ( run_mode )  ) {
 
     ERROR_MSG ( "reactor failed\n" );

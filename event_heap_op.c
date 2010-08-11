@@ -99,8 +99,7 @@ static int event_heap_lift ( event_heap_element_t * ev, int idx ) {
   return 0;
 }
 
-// some mutex conflict
-
+// needs synchronization
 int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
 
   int size = -1;

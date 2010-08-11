@@ -67,7 +67,8 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
   static int cnt = 1000000;
   cnt--;
   if ( cnt <= 0 ) {
-    printf ( "%d\n", semval ( &eq -> used ) );
+    fprintf ( stdout, "%d\n", semval ( &eq -> used ) );
+    fflush ( stdout );
     cnt = 1000000;
   }
   //=============================== *

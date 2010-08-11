@@ -45,10 +45,9 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
   struct timeval now;
   gettimeofday ( &now, NULL );
   
-  now.tv_usec += 0; //t * 1000;
+  now.tv_usec += t * 1000;
   event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };  
 
-  // signal ^_^
   int idx;
   if ( 0 != event_heap_insert ( eh_p, &el, &idx ) ){
 
@@ -57,7 +56,7 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
   }
 
   // signal to wakeup
-  // TODO check reurn value
+  // TODO check return value
   if ( 0 == idx ) {
     
     pthread_mutex_lock ( &eh_p -> sleep_mutex );
@@ -173,7 +172,7 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     if ( 0 != epoll_ctl (rp_p -> epfd, EPOLL_CTL_MOD, sd_p -> sock_dup, &event_rwout ) ) {
 
       ERROR_MSG ( "epoll_ctl failed!!!\n" );
-      perror("failed");
+      perror("epoll_ctl");
       return -1;
     }
     return 0;
@@ -197,6 +196,7 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     return 0;
   } // end of ( sizeof (sd_p -> send_pack) != sd_p -> send_ofs )
 
+  /* send full packet... */
 
   TRACE_MSG ( "send full packet\n" );
   
