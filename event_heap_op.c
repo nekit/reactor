@@ -2,6 +2,7 @@
 #include "log.h"
 #include <memory.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #define eh_left(i) ( (i<<1) + 1)
 #define eh_right(i) ( (i<<1) + 2)
@@ -16,13 +17,7 @@ int event_heap_init ( event_heap_t * eh, int n ) {
 
     ERROR_MSG ( "malloc heap size %d failed\n", n );
     return -1;    
-  }
-
-  if ( 0 != sem_init ( &eh -> size, 0, 0 ) ) {
-
-    ERROR_MSG ( "sem_init failed\n" );
-    return -1;
-  }
+  } 
 
   if ( 0 != pthread_mutex_init ( &eh -> mutex, NULL ) ) {
 
@@ -43,7 +38,8 @@ int event_heap_init ( event_heap_t * eh, int n ) {
   }
 
   eh -> cap = n;
-  INFO_MSG ( "event_heap size: %d\n", n );
+  eh -> size = 0;
+  INFO_MSG ( "event_heap cap: %d\n", n );
 
   return 0;
 }
@@ -68,13 +64,16 @@ static inline void eh_swap ( event_heap_element_t * ev, int i, int j ) {
   ev[i] = ev[j];
   ev[j] = tmp;
 }
- 
+
+// AAAAAAAAAAAAAAA!!!!!!!!!!
 static void event_heap_push_h ( event_heap_element_t * ev, int size, int i ) {
 
   int min_idx = i;  
   if ( (eh_left(i) < size) && ( eh_cmp ( &ev[eh_left(i)], &ev[i] ) < 0) )
     min_idx = eh_left(i);
-  if ( (eh_right(i) < size) && ( eh_cmp ( &ev[eh_right(i)], &ev[i] ) < 0) )
+
+  // min_idx !!!!!!!!!! AAAAAAAAAAAAAA!!!!!
+  if ( (eh_right(i) < size) && ( eh_cmp ( &ev[eh_right(i)], &ev[min_idx] ) < 0) )
     min_idx = eh_right(i);
 
   if ( min_idx != i ) {
@@ -101,15 +100,8 @@ static int event_heap_lift ( event_heap_element_t * ev, int idx ) {
 
 // needs synchronization
 int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
-
-  int size = -1;
-  if ( 0 != sem_getvalue ( &eh -> size, &size ) ) {
-
-    ERROR_MSG ( "sem_getvalue failed\n" );
-    return -1;
-  }
   
-  if ( 0 == size ) {
+  if ( 0 == eh -> size ) {
 
     WARN_MSG ( "getmin at empty event heap\n" );
     return -1;
@@ -121,9 +113,10 @@ int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
   // we garanted synchronization on upper level
   //  pthread_mutex_lock ( &eh -> mutex );
 
-  ev[0] = ev[size - 1];
-  sem_wait ( &eh -> size );
-  event_heap_push_h ( eh -> ev, size - 1, 0 );
+
+  eh -> size -= 1;
+  ev[0] = ev[eh -> size];
+  event_heap_push_h ( eh -> ev, eh -> size, 0 );
 
   // synchronization on upper level
   //pthread_mutex_unlock ( &eh -> mutex );
@@ -132,49 +125,43 @@ int event_heap_getmin ( event_heap_t * eh, event_heap_element_t * el ) {
 }
 
 int event_heap_peekmin ( event_heap_t * eh, event_heap_element_t * el ) {
-
-  int size = -1;
-  if ( 0 != sem_getvalue ( &eh -> size, &size ) ) {
-
-    ERROR_MSG ( "sem_getvalue failed\n" );
-    return -1;
-  }
   
-  if ( 0 == size ) {
+  if ( 0 == eh -> size ) {
 
     DEBUG_MSG ( "there is nothing O_o\n" );
     return 1;
   }
-
   *el = eh -> ev[0];
 
   return 0;
 }
 
-int event_heap_insert ( event_heap_t * eh, event_heap_element_t * el, int * ridx ) {
+int event_heap_insert ( event_heap_t * eh, struct epoll_event * ev, int t, int * ridx ) {
+
+  // TODO put in right place
+  struct timeval now;
+  gettimeofday ( &now, NULL );
+    // O_o calc right time
+  now.tv_usec += t * 1000;
+  now.tv_sec += now.tv_usec / (int)1E6;
+  now.tv_usec %= (int)1E6;
+  event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };
+
+  DEBUG_MSG ( "insert to time:\n sec %lld\n milisec: %lld\n", el.time.tv_sec, el.time.tv_nsec / 1000000 );
 
   pthread_mutex_lock ( &eh -> mutex );
-  
-  int size = -1;
-  if ( 0 != sem_getvalue ( &eh -> size, &size ) ) {
 
-    pthread_mutex_unlock ( &eh -> mutex );
-
-    ERROR_MSG ( "sem_getvalue failed\n" );
-    return -1;
-  }
-
-  if ( eh -> cap == size ) {
+  if ( eh -> cap == eh -> size ) {
 
     pthread_mutex_unlock ( &eh -> mutex );
     ERROR_MSG ( "event heap is full, can't push\n" );
     return -1;
   }
 
-  eh -> ev[size] = *el;
-  *ridx = event_heap_lift ( eh -> ev, size );
-  sem_post ( &eh -> size );
-
+  eh -> ev[eh -> size] = el;
+  *ridx = event_heap_lift ( eh -> ev, eh -> size );
+  eh -> size += 1;
+  
   pthread_mutex_unlock ( &eh -> mutex );
 
   return 0;

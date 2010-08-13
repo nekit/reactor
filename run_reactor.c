@@ -35,8 +35,8 @@ static int client_sock_desk_init ( sock_desk_t * sd_p ) {
     return -1;
   }
 
-  // hardcode 10ms timeout (TODO...)
-  sd_p -> timeout = 10;
+  // hardcode 100ms timeout (TODO...)
+  sd_p -> timeout = 100;
   //hardcode send_idx = 1
   sd_p -> send_idx = 1;
   //sock type

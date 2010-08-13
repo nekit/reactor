@@ -117,7 +117,7 @@ typedef struct event_heap_s {
 
   // capacity of the heap
   int cap;
-  sem_t size;
+  int size;
   event_heap_element_t * ev;
   pthread_mutex_t mutex;
   pthread_cond_t sleep_cond;

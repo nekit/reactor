@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <limits.h>
 
-static inline int cmp_timeval ( const struct timeval * a, const struct timeval * b ) {
+static inline int cmp_timeval ( const struct timeval * __restrict__ a, const struct timeval * __restrict__ b ) {
 
   if ( 0 == (a -> tv_sec - b -> tv_sec) )
     return a -> tv_usec - b -> tv_usec;
@@ -21,10 +21,11 @@ static inline int cmp_timeval ( const struct timeval * a, const struct timeval *
 // TODO lock mutex in right place ^_^
 
 // some function to make peek and get opertions
-static int peek_and_get ( reactor_pool_t * rp_p, struct timespec * stime_p, struct timeval * now_p ) {
+static int peek_and_get ( reactor_pool_t * rp_p, struct timespec * stime_p ) {
 
   event_heap_element_t mine;
   struct timeval next;
+  struct timeval now;
   int rv = event_heap_peekmin ( &rp_p -> event_heap, &mine );
 
   if ( 0 != rv ) {
@@ -36,23 +37,26 @@ static int peek_and_get ( reactor_pool_t * rp_p, struct timespec * stime_p, stru
     }
 
     //set infinum sleep time
-    TRACE_MSG ( "sleep indefinatly\n" );
     stime_p -> tv_sec = LONG_MAX;
     return SCH_NEED_TO_SLEEP;
   } // end of ( 0 != rv )
 
-
   // to struct timeval
   next.tv_sec = mine.time.tv_sec;
   next.tv_usec = mine.time.tv_nsec / 1000;
+  // get time now)
+  gettimeofday ( &now, NULL );
 
   // compare now and next
-  if ( cmp_timeval ( now_p, &next ) >= 0 ) {
+  if ( cmp_timeval ( &now, &next ) >= 0 ) {
 
     // time to push event ^_^
+    DEBUG_MSG ( "getmin at time:\n sec: %lld\n milisec: %lld\n", now.tv_sec, now.tv_usec / 1000 );
 
     // get element from event_heap
     event_heap_getmin ( &rp_p -> event_heap, &mine );
+    DEBUG_MSG ( "getmin getted time:\n sec %lld\n milisec %lld\n", mine.time.tv_sec, mine.time.tv_nsec / 1000000 );
+
     
     // push event to event_queue
     push_wrap_event_queue ( rp_p, &mine.ev );
@@ -67,26 +71,20 @@ static int peek_and_get ( reactor_pool_t * rp_p, struct timespec * stime_p, stru
 
 void * client_shedule ( void * arg ) {
 
-  reactor_pool_t * rp_p = arg;
-  TRACE_MSG ( "scheduler thread started\n" );
+  reactor_pool_t * rp_p = arg; 
 
   for ( ; ; ) {
 
     struct timespec stime;
     
     for (;;) {   // poping events while popitsia ^_^
-
-      struct timeval now;
-      gettimeofday ( &now, NULL );
-
+      
       // mutex's...
-      TRACE_MSG ( "locking mutex's...\n" );
       pthread_mutex_lock ( &rp_p -> event_heap.sleep_mutex );
       /* make synchromized to do peek & get transaction */
       pthread_mutex_lock ( &rp_p -> event_heap.mutex );
       // save return value
-      TRACE_MSG ( "peek & get...\n" );
-      int rv = peek_and_get ( rp_p, &stime, &now );
+      int rv = peek_and_get ( rp_p, &stime );
       //unlock heap mutex
       pthread_mutex_unlock ( &rp_p -> event_heap.mutex );
 
@@ -96,8 +94,6 @@ void * client_shedule ( void * arg ) {
 	ERROR_MSG ( "peek_and_get failed\n" );
 	return NULL;
       }
-
-      TRACE_MSG ( "peek & get success\n" );
 
       if ( SCH_NOT_SLEEP == rv ) {
 
@@ -116,10 +112,9 @@ void * client_shedule ( void * arg ) {
     
 
     // timedwait...
-    TRACE_MSG ( "scheduler sleep\n" );    
+    DEBUG_MSG ( "timedwait to time:\n sec: %lld\n milisec: %lld\n", stime.tv_sec, stime.tv_nsec / 1000000 );
     pthread_cond_timedwait ( &rp_p -> event_heap.sleep_cond, &rp_p -> event_heap.sleep_mutex, &stime );
     pthread_mutex_unlock ( &rp_p -> event_heap.sleep_mutex );
-    TRACE_MSG ( "scheduler wake up\n" );    
   } // end of life - cycle 
 
   return NULL;

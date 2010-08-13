@@ -35,21 +35,20 @@ static inline void update_statistic ( statistic_t * stat ) {
 }
 
 static inline void idx_to_packet ( uint32_t idx, packet_t p ) {
-  memcpy ( p, &idx, sizeof (idx) );
+  memcpy ( p, &idx, PACKET_SIZE );
 }
 
 static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, int t ) {
-
-  TRACE_MSG ( "push write event to heap\n" );
-
+  /*
   struct timeval now;
   gettimeofday ( &now, NULL );
-  
+    // O_o calc right time
   now.tv_usec += t * 1000;
-  event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };  
-
+  now.tv_sec += now.tv_usec / (int)1E6;
+  now.tv_usec %= (int)1E6;
+  */
   int idx;
-  if ( 0 != event_heap_insert ( eh_p, &el, &idx ) ){
+  if ( 0 != event_heap_insert ( eh_p, ev, t, &idx ) ){
 
     ERROR_MSG ( "event_heap_insert failed\n" );
     return -1;
@@ -59,8 +58,7 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
   // TODO check return value
   if ( 0 == idx ) {
     
-    pthread_mutex_lock ( &eh_p -> sleep_mutex );
-    TRACE_MSG ( "signal to scheduler!!!\n" );
+    pthread_mutex_lock ( &eh_p -> sleep_mutex );    
     pthread_cond_signal ( &eh_p -> sleep_cond );
     pthread_mutex_unlock ( &eh_p -> sleep_mutex );
   }
@@ -69,7 +67,6 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
 }
 
 static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
-
 
   static __thread struct epoll_event event_in = { .events = EPOLLIN };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
@@ -129,6 +126,11 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
   //push EPOLLIN in event queue
   event_in.data = ev -> data;
   push_wrap_event_queue ( rp_p, &event_in );
+
+  return 0;
+}
+
+static int fake_send_full_packet () {
 
   return 0;
 }
@@ -197,6 +199,8 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   } // end of ( sizeof (sd_p -> send_pack) != sd_p -> send_ofs )
 
   /* send full packet... */
+
+  fake_send_full_packet ();
 
   TRACE_MSG ( "send full packet\n" );
   
