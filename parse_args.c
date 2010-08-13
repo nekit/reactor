@@ -24,10 +24,11 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
   rm -> n = 1;
   INIT_LOG_LEVEL( DEFAULT_LOG_LEVEL );
   strcpy ( rm -> file, DEFAULT_FILENAME );
+  rm -> freq = DEFAULT_FREQ;
 
   int i;
   int res;  
-  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:F:")) != -1) {
+  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:F:f:")) != -1) {
     switch (res){
        case 's':
 	 stpcpy(rm -> ip_addr, optarg);
@@ -85,6 +86,10 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
       
     case 'F':
       strcpy ( rm -> file, optarg );
+      break;
+
+    case 'f':
+      rm -> freq = atoi ( optarg );
       break;
       
     } // end of switch

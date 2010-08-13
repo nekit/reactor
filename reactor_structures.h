@@ -17,6 +17,7 @@
 #define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
 #define DEFAULT_LOG_LEVEL "INFO"
 #define DEFAULT_FILENAME "log.txt"
+#define DEFAULT_FREQ 10
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -180,6 +181,7 @@ typedef struct run_mode_s {
   int workers;
   reactor_mode_t mode;
   int n;
+  int freq; // tps for one client
   char file[ 30 ];
   
 } run_mode_t;

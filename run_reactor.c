@@ -18,7 +18,7 @@
 
 #define ACCEPT_KEY 0
 
-static int client_sock_desk_init ( sock_desk_t * sd_p ) {
+static int client_sock_desk_init ( sock_desk_t * sd_p, int freq ) {
 
   //duplicate sock
   sd_p -> sock_dup = dup ( sd_p -> sock );
@@ -35,8 +35,9 @@ static int client_sock_desk_init ( sock_desk_t * sd_p ) {
     return -1;
   }
 
-  // hardcode 100ms timeout (TODO...)
-  sd_p -> timeout = 100;
+  // freq from run_mode
+  // in ms
+  sd_p -> timeout = 1000 / freq ;
   //hardcode send_idx = 1
   sd_p -> send_idx = 1;
   //sock type
@@ -55,7 +56,7 @@ static int client_sock_desk_init ( sock_desk_t * sd_p ) {
   return 0;
 }
 
-static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_pool_t * rp_p ) {
+static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_pool_t * rp_p, run_mode_t * rm ) {
 
   sock_desk_t * sd_p = &rp_p -> sock_desk[idx];
 
@@ -76,7 +77,7 @@ static int connect_client ( uint32_t server_ip, uint16_t port, int idx, reactor_
   }
 
   //init sock_desk
-  if ( 0 != client_sock_desk_init (sd_p) ) {
+  if ( 0 != client_sock_desk_init (sd_p, rm -> freq ) ) {
 
     ERROR_MSG ( "client_sock_desk_init failed\n" );
     return -1;
@@ -134,7 +135,7 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
     uint16_t port = htons ( rm -> port );
     int i;
     for ( i = 0; i < rm -> n; ++i )
-      if ( 0 != connect_client ( serv_ip, port, i, &rct -> pool ) ) {
+      if ( 0 != connect_client ( serv_ip, port, i, &rct -> pool, rm ) ) {
 	
 	ERROR_MSG ( "failed to connect client %d\n", i );
 	return -1;
