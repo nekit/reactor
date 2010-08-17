@@ -53,6 +53,13 @@ int init_reactor_pool ( reactor_pool_t * rct_pool_p, int max_n, int mode, int cn
       ERROR_MSG ( "pthread_mutex_init failed\n" );
       return -1;
     }
+
+    // init state mutex
+    if ( 0 != pthread_mutex_init ( &sd_p -> state_mutex, NULL ) ) {
+      
+      ERROR_MSG ( "pthread_mutex_init failed\n" );
+      return -1;
+    }
       
   } // end of for
   

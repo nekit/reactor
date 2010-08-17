@@ -155,12 +155,16 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   push_data_queue ( &sd_p -> data_queue, sd_p -> recv_pack );
   sd_p -> recv_ofs = 0;
   int empty = -1;
+  // lock state_mutex
+  pthread_mutex_lock ( &sd_p -> state_mutex );
   sem_getvalue ( &sd_p -> data_queue.empty, &empty );
   if ( 0 == empty ) {
     
     sd_p -> type = ST_NOT_ACTIVE;
     tmp_r.events = EPOLLOUT;
   }
+  // unlock state_mutex
+  pthread_mutex_unlock ( &sd_p -> state_mutex );
   
   push_wrap_event_queue ( rp_p, &tmp_r );   
 
@@ -186,9 +190,14 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
 
   if ( sizeof ( sd_p -> send_pack ) == sd_p -> send_ofs ) {
 
+    // lock state_mutex
+    pthread_mutex_lock ( &sd_p -> state_mutex );
+
     if ( 0 != pop_data_queue (&sd_p -> data_queue, sd_p -> send_pack ) ) {
 
       TRACE_MSG ( "nothing to send O_O\n" );
+      // unlock state_mutex
+      pthread_mutex_unlock ( &sd_p -> state_mutex );
       return 0;
     }
 
@@ -202,7 +211,11 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
       tmp_w.events = EPOLLIN;
       push_wrap_event_queue ( rp_p, &tmp_w );      
     }
-  }
+
+    // unlock state_mutex
+    pthread_mutex_unlock ( &sd_p -> state_mutex );
+    
+  } // end of take from data_queue
 
   TRACE_MSG ( "sending...\n" );
   int len = send ( sd_p -> sock, &sd_p -> send_pack + sd_p -> send_ofs, sizeof (sd_p -> send_pack) - sd_p -> send_ofs, 0 );

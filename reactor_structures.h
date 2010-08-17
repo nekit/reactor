@@ -91,6 +91,7 @@ typedef struct sock_desk_s {
   int recv_ofs;
   pthread_mutex_t read_mutex;
   pthread_mutex_t write_mutex;
+  pthread_mutex_t state_mutex;
   inq_t inq;
   
 } sock_desk_t;
