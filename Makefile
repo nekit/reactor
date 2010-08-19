@@ -17,11 +17,5 @@ $(target_name): $(target_list)
 
 include $(wildcard *.d)
 
-
-test: $(test_data_queue)
-
-$(test_data_queue): $(test_data_queue_list)
-	$(CC) $^ -o $@ $(LDFLAGS)
-
 clean:
 	rm *.o *.d $(target_name)

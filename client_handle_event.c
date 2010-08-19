@@ -38,17 +38,21 @@ static inline void idx_to_packet ( uint32_t idx, packet_t p ) {
   memcpy ( p, &idx, PACKET_SIZE );
 }
 
+
+// t - timeout
 static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, int t ) {
-  /*
+
+  // calc time =)
   struct timeval now;
   gettimeofday ( &now, NULL );
     // O_o calc right time
   now.tv_usec += t * 1000;
   now.tv_sec += now.tv_usec / (int)1E6;
   now.tv_usec %= (int)1E6;
-  */
+  event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };
+
   int idx;
-  if ( 0 != event_heap_insert ( eh_p, ev, t, &idx ) ){
+  if ( 0 != event_heap_insert ( eh_p, el, &idx ) ){
 
     ERROR_MSG ( "event_heap_insert failed\n" );
     return -1;
@@ -88,10 +92,8 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
 
   TRACE_MSG ( "recv full packet\n" );
 
-  // update offset !!! =)
+  // update offset!!! =)
   sd_p -> recv_ofs = 0;
-
-  TRACE_MSG ( "poping data queue...\n" );
   
   // pop sended packet
   packet_t sended;
@@ -101,7 +103,18 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
     return -1;
   }
 
-  TRACE_MSG ( "poped data queue...\n" ); 
+  /* poped from data queue successfully */
+
+  //check for change state with mutex
+  pthread_mutex_lock ( &sd_p -> state_mutex );
+  if ( ST_NOT_ACTIVE == sd_p -> type ) {
+
+    sd_p -> type = ST_DATA;
+    //push event for send
+    event_out.data = ev -> data;
+    push_wrap_event_queue ( rp_p, &event_out );
+  }
+  pthread_mutex_unlock ( &sd_p -> state_mutex );
   
   // compare sd_p -> recv_pack & sended
   if ( 0 != packet_cmp ( sd_p -> recv_pack, sended ) ) {
@@ -113,24 +126,10 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
   // update statistic
   TRACE_MSG ( "recieve successfully, update statistic\n" );
   update_statistic ( &rp_p -> statistic );
-
-  //check for change state
-  if ( ST_NOT_ACTIVE == sd_p -> type ) {
-
-    sd_p -> type = ST_DATA;
-    //push event for send
-    event_out.data = ev -> data;
-    push_wrap_event_queue ( rp_p, &event_out );
-  }
   
   //push EPOLLIN in event queue
   event_in.data = ev -> data;
   push_wrap_event_queue ( rp_p, &event_in );
-
-  return 0;
-}
-
-static int fake_send_full_packet () {
 
   return 0;
 }
@@ -149,19 +148,24 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     return 0;
   }
   
-  // check empty slots
+  // check empty slots with state_mutex
+  // extract to func?
+  pthread_mutex_lock ( &sd_p -> state_mutex );
   int empty = -1;
   if ( 0 != sem_getvalue (&sd_p -> data_queue.empty, &empty) ) {
 
     ERROR_MSG ( "sem_getvalue failed\n" );
-    return 0;
+    pthread_mutex_unlock ( &sd_p -> state_mutex );
+    return -1;
   }
   if ( 0 == empty ) {
 
+    // not active state
     sd_p -> type = ST_NOT_ACTIVE;
-    TRACE_MSG ( "write not active now\n" );
+    pthread_mutex_unlock ( &sd_p -> state_mutex );
     return 0;    
   }
+  pthread_mutex_unlock ( &sd_p -> state_mutex );
 
   // send data
   int len = send ( sd_p -> sock, &sd_p -> send_pack + sd_p -> send_ofs, sizeof (sd_p -> send_pack) - sd_p -> send_ofs, 0 );
@@ -198,11 +202,7 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     return 0;
   } // end of ( sizeof (sd_p -> send_pack) != sd_p -> send_ofs )
 
-  /* send full packet... */
-
-  fake_send_full_packet ();
-
-  TRACE_MSG ( "send full packet\n" );
+  /* full packet sended... */
   
   //push to data_queue
   push_data_queue ( &sd_p -> data_queue, sd_p -> send_pack );

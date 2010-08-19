@@ -136,18 +136,7 @@ int event_heap_peekmin ( event_heap_t * eh, event_heap_element_t * el ) {
   return 0;
 }
 
-int event_heap_insert ( event_heap_t * eh, struct epoll_event * ev, int t, int * ridx ) {
-
-  // TODO put in right place
-  struct timeval now;
-  gettimeofday ( &now, NULL );
-    // O_o calc right time
-  now.tv_usec += t * 1000;
-  now.tv_sec += now.tv_usec / (int)1E6;
-  now.tv_usec %= (int)1E6;
-  event_heap_element_t el = { .ev = *ev, .time.tv_sec = now.tv_sec, .time.tv_nsec = now.tv_usec * 1000 };
-
-  DEBUG_MSG ( "insert to time:\n sec %lld\n milisec: %lld\n", el.time.tv_sec, el.time.tv_nsec / 1000000 );
+int event_heap_insert ( event_heap_t * eh, event_heap_element_t el, int * ridx ) {
 
   pthread_mutex_lock ( &eh -> mutex );
 
