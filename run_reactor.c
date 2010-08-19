@@ -113,7 +113,7 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
 
   TRACE_MSG ( "initing reactor\n" );
 
-  rct -> max_n = rm -> max_users;
+  rct -> max_n = rm -> n;
   rct -> workers = rm -> workers;
   rct -> cn = rm -> n;
   if ( 0 != init_reactor_pool ( &rct -> pool, rct -> max_n, rm -> mode, rct -> cn ) ) {

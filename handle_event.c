@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include "parse_args.h"
+
 int init_sock ( sock_desk_t * sd_p, int sock ) {
 
   if ( 0 != set_nonblock ( sock ) ) {
@@ -26,7 +28,7 @@ int init_sock ( sock_desk_t * sd_p, int sock ) {
   sd_p -> recv_ofs = 0;
   sd_p -> inq.flags = 0;
 
-  if ( 0 != reinit_data_queue ( &sd_p -> data_queue ) ) {
+  if ( 0 != data_queue_reinit ( &sd_p -> data_queue ) ) {
 
     ERROR_MSG ( "init_data_queue failed\n" );
     return -1;
@@ -152,7 +154,7 @@ int handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   tmp_r.data = ev -> data;
   tmp_r.events = EPOLLIN | EPOLLOUT;
   
-  push_data_queue ( &sd_p -> data_queue, sd_p -> recv_pack );
+  data_queue_push ( &sd_p -> data_queue, sd_p -> recv_pack );
   sd_p -> recv_ofs = 0;
   int empty = -1;
   // lock state_mutex
@@ -193,7 +195,7 @@ int handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
     // lock state_mutex
     pthread_mutex_lock ( &sd_p -> state_mutex );
 
-    if ( 0 != pop_data_queue (&sd_p -> data_queue, sd_p -> send_pack ) ) {
+    if ( 0 != data_queue_pop (&sd_p -> data_queue, sd_p -> send_pack ) ) {
 
       TRACE_MSG ( "nothing to send O_O\n" );
       // unlock state_mutex

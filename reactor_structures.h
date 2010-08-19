@@ -9,15 +9,6 @@
 #define DATA_QUEUE_SIZE 32
 #define EPOLL_TIMEOUT 100
 
-#define DEFAULT_PORT 1050
-#define DEFAULT_IP "192.168.16.152"
-#define DEFAULT_MAX_USERS 100000
-#define DEFAULT_LISTN_BACKLOG 30000
-#define DEFAULT_WORKER_AMOUNT 8
-#define DEFAULT_REACTOR_MODE R_REACTOR_SERVER
-#define DEFAULT_LOG_LEVEL "INFO"
-#define DEFAULT_FILENAME "log.txt"
-#define DEFAULT_FREQ 10
 #define IP_ADDR_SIZE 20
 #define PACKET_SIZE sizeof ( uint32_t )
 typedef char packet_t[ PACKET_SIZE ];
@@ -159,6 +150,7 @@ typedef struct thread_pool_s {
 typedef struct reactor_s {
 
   int cn;
+  // max connections
   int max_n;
   int workers;
   thread_pool_t thread_pool;
@@ -178,13 +170,11 @@ typedef struct run_mode_s {
 
   int port;
   char ip_addr[ IP_ADDR_SIZE ];
-  int max_users;
+  int n;                              // max users (or client amount) 
   int listn_backlog;
   int workers;
   reactor_mode_t mode;
-  int n;
-  int freq; // tps for one client
-  char file[ 30 ];
+  int freq;                           // tps for one client  
   
 } run_mode_t;
 

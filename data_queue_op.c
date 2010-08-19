@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <stdio.h>
 
-int init_data_queue ( data_queue_t * dq ) {
+int data_queue_init ( data_queue_t * dq ) {
 
   memset ( dq -> pack, 0, sizeof (dq -> pack) );
   dq -> head = dq -> tail = 0;
@@ -23,7 +23,7 @@ int init_data_queue ( data_queue_t * dq ) {
   return 0;
 }
 
-int reinit_data_queue ( data_queue_t * dq ) {
+int data_queue_reinit ( data_queue_t * dq ) {
 
   if ( 0 != sem_destroy ( &dq -> used) ) {
 
@@ -37,10 +37,10 @@ int reinit_data_queue ( data_queue_t * dq ) {
     return -1;
   }
 
-  return init_data_queue ( dq );
+  return data_queue_reinit ( dq );
 }
 
-void push_data_queue ( data_queue_t *dq, packet_t pack ) {
+void data_queue_push ( data_queue_t *dq, packet_t pack ) {
 
   sem_wait ( &dq -> empty );
   
@@ -51,7 +51,7 @@ void push_data_queue ( data_queue_t *dq, packet_t pack ) {
   sem_post ( &dq -> used );  
 }
 
-int pop_data_queue ( data_queue_t * dq, packet_t pack ) {
+int data_queue_pop ( data_queue_t * dq, packet_t pack ) {
 
   if ( 0 != sem_trywait ( &dq -> used ) )
     return -1;
@@ -64,7 +64,7 @@ int pop_data_queue ( data_queue_t * dq, packet_t pack ) {
   return 0;
 }
 
-int pop_data_queue_f ( data_queue_t * dq, packet_t pack ) {
+int data_queue_pop_f ( data_queue_t * dq, packet_t pack ) {
 
   sem_wait ( &dq -> used );  
 
@@ -76,7 +76,7 @@ int pop_data_queue_f ( data_queue_t * dq, packet_t pack ) {
   return 0;
 }
 
-void deinit_data_queue ( data_queue_t * dq ) {
+void data_queue_deinit ( data_queue_t * dq ) {
 
   sem_destroy ( &dq -> empty );
   sem_destroy ( &dq -> used );

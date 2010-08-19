@@ -97,7 +97,7 @@ static int client_handle_read ( struct epoll_event * ev, reactor_pool_t * rp_p )
   
   // pop sended packet
   packet_t sended;
-  if ( 0 != pop_data_queue_f ( &sd_p -> data_queue, sended ) ) {
+  if ( 0 != data_queue_pop_f ( &sd_p -> data_queue, sended ) ) {
 
     ERROR_MSG ( "pop_data_queue: recieved something wrong O_O\n some strange data\n" );
     return -1;
@@ -205,7 +205,7 @@ int client_handle_write ( struct epoll_event * ev, reactor_pool_t * rp_p ) {
   /* full packet sended... */
   
   //push to data_queue
-  push_data_queue ( &sd_p -> data_queue, sd_p -> send_pack );
+  data_queue_push ( &sd_p -> data_queue, sd_p -> send_pack );
 
   // next packet
   sd_p -> send_idx++;

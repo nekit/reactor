@@ -13,59 +13,75 @@ static char * rm_names[] = {
   [R_REACTOR_SERVER] = "reactor_server",
 };
 
-int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
+static void print_help () {
   
+  printf ( "Usage: reactor [options]\n"
+	   "\t-h \t\t print help\n"
+	   "\t-s [ip address]\t bind or connect to ip address\n"
+	   "\t-p [port]\t bind or connect to port\n"
+	   "\t-w [workers]\t workers number in thead pool\n"
+	   "\t-L [log level]\t TRACE, DEBUG, INFO, WARN, ERROR, FATAL\n"
+	   "\t-n [conect's]\t max connections number ( or amount of clients in client mode )\n"
+	   "\t-m [mode]\t program mode (reactor_server, reactor_client)\n"
+	   "\t-f [frequency]\t frequency in tps for one client in client mode\n"
+	  );
+}
+
+int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
+
+  // default values...
   strcpy(rm -> ip_addr , DEFAULT_IP);
   rm -> port = DEFAULT_PORT;
-  rm -> max_users = DEFAULT_MAX_USERS;
+  rm -> n = DEFAULT_MAX_USERS;
   rm -> listn_backlog = DEFAULT_LISTN_BACKLOG;
   rm -> workers = DEFAULT_WORKER_AMOUNT;
   rm -> mode = DEFAULT_REACTOR_MODE;
-  rm -> n = 1;
-  INIT_LOG_LEVEL( DEFAULT_LOG_LEVEL );
-  strcpy ( rm -> file, DEFAULT_FILENAME );
   rm -> freq = DEFAULT_FREQ;
+  // set default log level
+  INIT_LOG_LEVEL( DEFAULT_LOG_LEVEL );  
+
+  /*
+
+    s - ip address
+    p - port
+    w - workers number in thread pool
+    L - log level ( TRACE, DEBUG, INFO, WARN, ERROR, FATAL )
+    n - max connections number ( or amount of clients in client mode )
+    m - mode ( reactor_server, reactor_client )
+    f - frequency in tps for one client in client mode
+    h - print help
+
+   */
 
   int i;
-  int res;  
-  while ( (res = getopt(argc,argv,"s:p:u:w:L:n:m:F:f:")) != -1) {
+  int res;
+  while ( (res = getopt(argc,argv,"hs:p:w:L:n:m:f:")) != -1) {
     switch (res){
-       case 's':
-	 stpcpy(rm -> ip_addr, optarg);
-	 DEBUG_MSG ( "ip: %s\n", rm -> ip_addr );
-	 break;
-	 
-       case 'p':
-	 if (0 < atoi(optarg))
-	   rm -> port = atoi(optarg);
-	 else{
-	   printf("wrong port \n");
-	   return -1;
-	 }      
-	 break;
 
-    case 'u':
-      rm -> max_users = atoi ( optarg );
-      TRACE_MSG ( "max_users: %d\n", rm -> max_users );
-      break;
-
-    case 'b':
-      rm -> listn_backlog = atoi ( optarg );
-      TRACE_MSG ( "listn_backlog: %d\n", rm -> listn_backlog );
-      break;
-    
     case 'h':
-      printf ( "reqiers arguments:\n -s: ip-address\n -p: port\n -u: max users amount\n -b listning baclog size\n");
-      return -1;
-    
-    case 'L' :
-      TRACE_MSG( "parsing level %s\n", optarg );
+      print_help ();
+      return (EXIT_FAILURE);
+      
+    case 's':
+      stpcpy(rm -> ip_addr, optarg);     
+      break;
+      
+    case 'p':      
+      rm -> port = atoi(optarg);      
+      break;
+      
+    case 'b':
+      rm -> listn_backlog = atoi ( optarg );      
+      break;   
+      
+    case 'L' :      
       INIT_LOG_LEVEL( optarg );
       break;
+      
     case 'w':
       rm -> workers = atoi ( optarg );
       break;
-
+      
     case 'm':
       for ( i = 0; i < sizeof (rm_names) / sizeof (rm_names[0]); ++i )
 	if (rm_names[i] != 0)
@@ -74,20 +90,15 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
 	    break;
 	  }
       
-      if ( i >= sizeof (rm_names) / sizeof (rm_names[0]) ) {
-	printf ( "Unknown mode: %s\n", optarg );
-	rm -> mode = DEFAULT_REACTOR_MODE;	// server for default
-      }
-
-      break;
+      if ( i >= sizeof (rm_names) / sizeof (rm_names[0]) ) 
+	INFO_MSG ( "Unknown mode: %s\n", optarg );
+      
+      break; // end of 'm'      
+      
     case 'n':
       rm -> n = atoi ( optarg );
-      break;
+      break;    
       
-    case 'F':
-      strcpy ( rm -> file, optarg );
-      break;
-
     case 'f':
       rm -> freq = atoi ( optarg );
       break;
@@ -95,7 +106,7 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
     } // end of switch
 
     
-  }
+  } // end of while
   
-  return 0;
+  return (EXIT_SUCCESS);
 }
