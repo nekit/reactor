@@ -13,7 +13,8 @@ int main ( int argc, char * argv[] ) {
 
   // parsing args
   run_mode_t run_mode;
-  parse_args ( argc, argv, &run_mode );
+  if ( EXIT_SUCCESS != parse_args ( argc, argv, &run_mode ) )
+    return (EXIT_SUCCESS);  
 
 
   // TODO

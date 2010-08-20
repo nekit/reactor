@@ -17,19 +17,19 @@ void * work ( void * arg ) {
   for ( ; ; ) {
 
     pop_wrap_event_queue ( rct_p_p, &ev );
-    tp_p -> handle_event ( &ev, tp_p -> pool_p );
+    tp_p -> handle_event ( &ev, tp_p -> reactor_p );
   }  
 
   return NULL;
 }
 
-int init_thread_pool ( thread_pool_t * tp, run_mode_t * rm_p, void * pool_p ) {
+int init_thread_pool ( thread_pool_t * tp, run_mode_t * rm_p, void * reactor_p ) {
 
   // init workers number
   tp -> n = rm_p -> workers;
 
-  // pool pointer (client or server)
-  tp -> pool_p = pool_p;
+  // reactor pointer (client or server)
+  tp -> reactor_p = reactor_p;
   
   // malloc memory for worker threads 
   tp -> worker = malloc ( tp -> n * sizeof (pthread_t) );
@@ -42,7 +42,7 @@ int init_thread_pool ( thread_pool_t * tp, run_mode_t * rm_p, void * pool_p ) {
   // handlers & reactor_pool pointer
   if ( R_REACTOR_SERVER == rm_p -> mode ) {
     tp -> handle_event = server_handle_event;
-    tp -> rpool_p = &(((server_pool_t *) pool_p) -> rpool);
+    tp -> rpool_p = &(((server_reactor_t *) reactor_p) -> core.reactor_pool);
   }
 
   /*
@@ -56,24 +56,24 @@ int init_thread_pool ( thread_pool_t * tp, run_mode_t * rm_p, void * pool_p ) {
   return (EXIT_SUCCESS);  
 }
 
-int start_thread_pool ( thread_pool_t * tp ) {
+int thread_pool_start ( thread_pool_t * tp ) {
 
   int i;
   for ( i = 0; i < tp -> n; ++i )
     if ( 0 != pthread_create ( &tp -> worker[i], NULL, work, (void *) tp ) ) {
 
       ERROR_MSG ( "failed to create worker %d\n", i + 1 );
-      return -1;
+      return (EXIT_FAILURE);
     }
 
   DEBUG_MSG ( "thread pool started successfully\n" );
   
-  return 0;
+  return (EXIT_SUCCESS);
 }
 
 void free_thread_pool ( thread_pool_t * tp ) {
 
   free ( tp -> worker );
   tp -> worker = NULL;
-  tp -> pool_p = NULL;
+  tp -> reactor_p = NULL;
 }

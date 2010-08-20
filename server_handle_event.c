@@ -48,11 +48,12 @@ static int deinit_sock ( serv_sock_desk_t * ssd_p ) {
 }
 
 
-static int server_handle_error ( struct epoll_event * ev, server_pool_t * sp_p ) {
- 
+static int server_handle_error ( struct epoll_event * ev, server_reactor_t * sr_p )  {
+
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sp_p -> rpool.sock_desk))[ud.data.idx];
-  if ( 0 != epoll_ctl ( sp_p -> rpool.epfd, EPOLL_CTL_DEL, ssd_p -> base.sock, NULL ) ) {
+  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
+    
+  if ( 0 != epoll_ctl ( sr_p -> core.reactor_pool.epfd, EPOLL_CTL_DEL, ssd_p -> base.sock, NULL ) ) {
 
     ERROR_MSG ( "epoll_ctl failed EPOLL_CTL_DEL\n" );
     perror ( "EPOLL_CTL_DEL" );
@@ -60,8 +61,7 @@ static int server_handle_error ( struct epoll_event * ev, server_pool_t * sp_p )
   }
   deinit_sock ( ssd_p );
 
-  // TODO
-  push_int_queue ( &sp_p -> idx_queue, ud.data.idx );
+  push_int_queue ( &sr_p -> idx_queue, ud.data.idx );
 
   INFO_MSG ( "error handled\n" );
   
@@ -70,11 +70,11 @@ static int server_handle_error ( struct epoll_event * ev, server_pool_t * sp_p )
 
 
 // accept O_o
-static int server_handle_accept ( struct epoll_event * ev, server_pool_t * sp_p ) {
+static int server_handle_accept ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * acsd_p = &((serv_sock_desk_t *)(sp_p -> rpool.sock_desk))[ud.data.idx];
-
+  serv_sock_desk_t * acsd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
+  
   int acp_sock = acsd_p -> base.sock;
 
   int i;
@@ -87,14 +87,14 @@ static int server_handle_accept ( struct epoll_event * ev, server_pool_t * sp_p 
     }  
 
     //check available slots!    
-    if ( 0 == sp_p -> idx_queue.size ) {
+    if ( 0 == sr_p -> idx_queue.size ) {
 
       WARN_MSG ( "no empty slots avaliable now\n" );
       return 0;
     }
     
-    int idx = pop_int_queue ( &sp_p -> idx_queue );
-    serv_sock_desk_t * ssd_p = &(((serv_sock_desk_t *)sp_p -> rpool.sock_desk)[idx]);
+    int idx = pop_int_queue ( &sr_p -> idx_queue );
+    serv_sock_desk_t * ssd_p = &(((serv_sock_desk_t *)sr_p -> core.reactor_pool.sock_desk)[idx]);
     if ( 0 != server_init_sock ( ssd_p, sock ) ) {
 
       ERROR_MSG ( "init sock failed!!!\n" );
@@ -110,7 +110,7 @@ static int server_handle_accept ( struct epoll_event * ev, server_pool_t * sp_p 
 
     tev.data.u64 = ud.u64;
     tev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
-    if ( 0 != epoll_ctl ( sp_p -> rpool.epfd, EPOLL_CTL_ADD, sock, &tev ) ) {
+    if ( 0 != epoll_ctl ( sr_p -> core.reactor_pool.epfd, EPOLL_CTL_ADD, sock, &tev ) ) {
 
       ERROR_MSG ( "epoll_ctl failed add sock %d\n", sock );
       return -1;
@@ -123,10 +123,10 @@ static int server_handle_accept ( struct epoll_event * ev, server_pool_t * sp_p 
   return 0;
 }
 
-int server_handle_read ( struct epoll_event * ev, server_pool_t * sp_p ) {
+int server_handle_read ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sp_p -> rpool.sock_desk))[ud.data.idx];
+  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
   base_sock_desk_t * sd_p = &ssd_p -> base;
 
   if ( ssd_p -> key != ud.data.key ) {
@@ -136,7 +136,7 @@ int server_handle_read ( struct epoll_event * ev, server_pool_t * sp_p ) {
   }
 
   if ( ST_ACCEPT == ssd_p -> base.type ) 
-    return server_handle_accept ( ev, sp_p );
+    return server_handle_accept ( ev, sr_p );
     
 
   if ( ST_NOT_ACTIVE == sd_p -> type )    
@@ -169,15 +169,15 @@ int server_handle_read ( struct epoll_event * ev, server_pool_t * sp_p ) {
   // unlock state_mutex
   pthread_mutex_unlock ( &sd_p -> state_mutex );
   
-  push_wrap_event_queue ( &sp_p -> rpool, &tmp_r );   
+  push_wrap_event_queue ( &sr_p -> core.reactor_pool, &tmp_r );   
   
   return 0;  
 }
 
-static int server_handle_write ( struct epoll_event * ev, server_pool_t * sp_p ) {
+static int server_handle_write ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sp_p -> rpool.sock_desk))[ud.data.idx];
+  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
   base_sock_desk_t * sd_p = &ssd_p -> base;
  
   if ( ssd_p -> key != ud.data.key ) {
@@ -213,7 +213,7 @@ static int server_handle_write ( struct epoll_event * ev, server_pool_t * sp_p )
 
       sd_p -> type = ST_DATA;
       tmp_w.events = EPOLLIN;
-      push_wrap_event_queue ( &sp_p -> rpool, &tmp_w );      
+      push_wrap_event_queue ( &sr_p -> core.reactor_pool, &tmp_w );      
     }
 
     // unlock state_mutex
@@ -235,41 +235,39 @@ static int server_handle_write ( struct epoll_event * ev, server_pool_t * sp_p )
 
     TRACE_MSG ( "send successfully\n" );
     tmp_w.events = EPOLLOUT | EPOLLIN; 
-    push_wrap_event_queue ( &sp_p -> rpool, &tmp_w );
+    push_wrap_event_queue ( &sr_p -> core.reactor_pool, &tmp_w );
   }
 
   return 0;
 }
 
+int server_handle_event ( struct epoll_event * ev, void * reactor_p ) {
 
-
-int server_handle_event ( struct epoll_event * ev, void * pool_p ) {
-
-  // server pool
-  server_pool_t * sp_p = pool_p;
+  // server reactor
+  server_reactor_t * sr_p = reactor_p;
   
   static __thread struct epoll_event event_in = { .events = EPOLLIN };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sp_p -> rpool.sock_desk))[ud.data.idx];
+  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
   base_sock_desk_t * sd_p = &ssd_p -> base;
 
   if ( -1 == ssd_p -> base.sock )
     return (EXIT_FAILURE);
 
   if ( 0 != (ev -> events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) )     
-    server_handle_error ( ev, sp_p );
+    server_handle_error ( ev, sr_p );
 
   // handle read
   if ( 0 != (ev -> events & EPOLLIN) ) {
     
     if ( 0 == pthread_mutex_trylock ( &sd_p -> read_mutex ) ) {
-      server_handle_read ( ev, sp_p );
+      server_handle_read ( ev, sr_p );
       pthread_mutex_unlock ( &sd_p -> read_mutex );
     }else {
       event_in.data = ev -> data;
-      push_wrap_event_queue ( &sp_p -> rpool, &event_in );
+      push_wrap_event_queue ( &sr_p -> core.reactor_pool, &event_in );
     }
   }
 
@@ -277,11 +275,11 @@ int server_handle_event ( struct epoll_event * ev, void * pool_p ) {
   if ( 0 != (ev -> events & EPOLLOUT) ) {
 
     if ( 0 == pthread_mutex_trylock ( &sd_p -> write_mutex ) ) {
-      server_handle_write ( ev, sp_p );
+      server_handle_write ( ev, sr_p );
       pthread_mutex_unlock ( &sd_p -> write_mutex );
     } else {
       event_out.data = ev -> data;
-      push_wrap_event_queue ( &sp_p -> rpool, &event_out );
+      push_wrap_event_queue ( &sr_p -> core.reactor_pool, &event_out );
     }  
   }
   

@@ -150,44 +150,37 @@ typedef struct reactor_pool_s {
   
 } reactor_pool_t;
 
-typedef struct server_pool_s {
-
-  reactor_pool_t rpool;
-  int_queue_t idx_queue;
-  
-} server_pool_t;
-
-typedef struct client_pool_s {
-
-  reactor_pool_t rpool;
-  event_heap_t event_heap;
-  statistic_t statistic;
-
-} client_pool_t;
-
 typedef struct thread_pool_s {
 
   int n; // workers number
   pthread_t * worker;
-  void * pool_p; // pointer on some pool ( reactor or client )
+  void * reactor_p; // pointer on some reactor ( server or client )
   reactor_pool_t * rpool_p; 
-  int (*handle_event) ( struct epoll_event * ev, void * pool_p );
+  int (*handle_event) ( struct epoll_event * ev, void * reactor_p );
   
 } thread_pool_t;
 
-
 typedef struct reactor_core_s {
 
-  thread_pool_t thread_pool;   
+  thread_pool_t thread_pool;
+  reactor_pool_t reactor_pool;
   
 } reactor_core_t;
 
 typedef struct server_reactor_s {
 
   reactor_core_t core;
-  server_pool_t pool;
+  int_queue_t idx_queue;
   
 } server_reactor_t;
+
+typedef struct client_reactor_s {
+
+  reactor_core_t core;
+  event_heap_t event_heap;
+  statistic_t statistic;
+  
+} client_reactor_t;
 
 typedef enum {
 

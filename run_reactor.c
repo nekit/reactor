@@ -155,6 +155,8 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
     rct -> pool.sock_desk[idx].sock = listn_sock;
     rct -> pool.sock_desk[idx].type = ST_ACCEPT;
     rct -> pool.sock_desk[idx].key = ACCEPT_KEY;
+
+    // ????????????????????????????????????????
     if ( 0 != pthread_mutex_init ( &rct -> pool.sock_desk[idx].read_mutex, NULL ) ) {
       
       ERROR_MSG ( "pthread_mutex_init failed\n" );
@@ -171,7 +173,7 @@ static int init_reactor ( reactor_t * rct, run_mode_t * rm ) {
       
       ERROR_MSG ( "pthread_mutex_init failed\n" );
       return -1;
-  }
+    }
     
     rct -> pool.sock_desk[idx].inq.flags = 0;
     
