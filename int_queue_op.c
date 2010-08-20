@@ -10,7 +10,7 @@ int init_int_queue ( int_queue_t * iq, int n ) {
   if ( NULL == iq -> val ) {
 
     ERROR_MSG ( "memory problem: malloc\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   iq -> head = iq -> tail = 0;
@@ -19,16 +19,16 @@ int init_int_queue ( int_queue_t * iq, int n ) {
   if ( 0 != pthread_mutex_init ( &iq -> write_mutex, NULL ) ) {
 
     ERROR_MSG ( "mutex init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   if ( 0 != pthread_mutex_init ( &iq -> sz_mutex, NULL ) ) {
 
     ERROR_MSG ( "mutex init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
-  return 0;
+  return (EXIT_SUCCESS);
 }
 
 void push_int_queue ( int_queue_t * iq, int a ) {

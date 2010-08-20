@@ -4,14 +4,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static int semval ( sem_t * sem_p ) {
-
-  int val;
-  sem_getvalue ( sem_p, &val );
-  return val;
-}
-
-
 int init_event_queue ( event_queue_t * eq, int n ) {
 
   // set event_queue size
@@ -25,34 +17,34 @@ int init_event_queue ( event_queue_t * eq, int n ) {
   if ( NULL == eq -> ev ) {
 
     ERROR_MSG ( "out of memory\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   if ( 0 != sem_init ( &eq -> empty, 0, eq -> cap ) ) {
 
     ERROR_MSG ( "sem init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }  
 
   if ( 0 != sem_init ( &eq -> used, 0, 0 ) ) {
 
     ERROR_MSG ( "sem init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }  
 
   if ( 0 != pthread_mutex_init ( &eq -> read_mutex, NULL ) ) {
 
     ERROR_MSG ( "read_mutex init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   if ( 0 != pthread_mutex_init ( &eq -> write_mutex, NULL ) ) {
 
     ERROR_MSG ( "read_mutex init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
-  return 0;
+  return (EXIT_SUCCESS);
 }
 
 // TODO return value
@@ -62,16 +54,6 @@ void push_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 
   sem_wait ( &eq -> empty );
   pthread_mutex_lock ( &eq -> write_mutex );
-
-  // ============================= some statistic section
-  static int cnt = 1000000;
-  cnt--;
-  if ( cnt <= 0 ) {
-    fprintf ( stdout, "%d\n", semval ( &eq -> used ) );
-    fflush ( stdout );
-    cnt = 1000000;
-  }
-  //=============================== *
 
   eq -> ev[ eq -> tail ] = *ev;
   //cycle queue
@@ -97,9 +79,13 @@ void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 }
 
 void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
-
+  
   udata_t ud = { .u64 = ev -> data.u64 };
-  sock_desk_t * sd_p = &rp_p -> sock_desk[ ud.data.idx ];
+  base_sock_desk_t * sd_p = NULL;
+  if ( R_REACTOR_SERVER == rp_p -> mode )
+    sd_p = &(((serv_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
+  if ( R_REACTOR_SERVER == rp_p -> mode )
+    sd_p = &(((client_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
   event_queue_t * eq = &rp_p -> event_queue;
   inq_t * inq_p = &sd_p -> inq;
   __uint32_t t = 0;
@@ -115,22 +101,28 @@ void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
     push_event_queue ( eq, ev );
   }
 
-  pthread_mutex_unlock  ( &inq_p -> mutex );  
+  pthread_mutex_unlock  ( &inq_p -> mutex );
+  
 }
 
 void pop_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
-
+  
   event_queue_t * eq = &rp_p -> event_queue;
 
   pop_event_queue ( eq, ev );
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  sock_desk_t * sd_p = &rp_p -> sock_desk[ ud.data.idx ];
+  base_sock_desk_t * sd_p = NULL;
+  if ( R_REACTOR_SERVER == rp_p -> mode )
+    sd_p = &(((serv_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
+  if ( R_REACTOR_SERVER == rp_p -> mode )
+    sd_p = &(((client_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
+
   inq_t * inq_p = &sd_p -> inq;
   // remove events
   pthread_mutex_lock ( &inq_p -> mutex );
   inq_p -> flags = inq_p -> flags ^ ev -> events;
-  pthread_mutex_unlock ( &inq_p -> mutex );
+  pthread_mutex_unlock ( &inq_p -> mutex );  
 }
 
 void free_event_queue ( event_queue_t * eq ) {

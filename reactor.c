@@ -3,6 +3,7 @@
 #include "reactor_structures.h"
 #include "parse_args.h"
 #include "run_reactor.h"
+#include "run_server.h"
 #include "log.h"
 
 int main ( int argc, char * argv[] ) {
@@ -16,11 +17,12 @@ int main ( int argc, char * argv[] ) {
 
 
   // TODO
-  if ( 0 != run_reactor ( run_mode )  ) {
 
-    ERROR_MSG ( "reactor failed\n" );
-    return -1;
+  // server mode
+  if ( R_REACTOR_SERVER == run_mode.mode ) {
+    return run_server ( run_mode );
   }
 
-  return 0;
+  WARN_MSG ( "Unknown mode\n" );
+  return (EXIT_SUCCESS);
 }

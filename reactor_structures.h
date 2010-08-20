@@ -1,6 +1,7 @@
 #ifndef REACTOR_STRUCTURES_H
 #define REACTOR_STRUCTURES_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <sys/epoll.h>
@@ -66,15 +67,11 @@ typedef union __attribute__ ((__transparent_union__)) udata_s {
   
 } udata_t;
 
-// TODO separate sock_desk
-typedef struct sock_desk_s {
+// base context descriptor
+typedef struct base_sock_desk_s {
 
-  int sock;
-  int sock_dup;
-  int timeout; // in milliseconds
-  uint32_t send_idx;
+  int sock;  
   sock_type_t type;
-  int key;
   data_queue_t data_queue;
   packet_t send_pack;
   packet_t recv_pack;
@@ -82,11 +79,28 @@ typedef struct sock_desk_s {
   int recv_ofs;
   pthread_mutex_t read_mutex;
   pthread_mutex_t write_mutex;
-  // state mutex needed
   pthread_mutex_t state_mutex;
   inq_t inq;
   
-} sock_desk_t;
+} base_sock_desk_t;
+
+// context descriptor for server
+typedef struct serv_sock_desk_s {
+
+  base_sock_desk_t base;
+  int key;  
+    
+} serv_sock_desk_t;
+
+// context descriptor for client
+typedef struct client_sock_desk_s {
+
+  base_sock_desk_t base;
+  int sock_dup;
+  int timeout; // in milliseconds
+  uint32_t send_idx;
+  
+} client_sock_desk_t;
 
 typedef struct int_queue_s {
 
@@ -128,35 +142,52 @@ typedef struct statistic_s {
 
 typedef struct reactor_pool_s {
 
-  int max_n;
+  int max_n; // max connections
   int epfd;
-  sock_desk_t * sock_desk;  
+  int mode;
+  void * sock_desk;  
   event_queue_t event_queue;
-  event_heap_t event_heap;
-  int_queue_t idx_queue;
-  statistic_t statistic;
   
 } reactor_pool_t;
 
+typedef struct server_pool_s {
+
+  reactor_pool_t rpool;
+  int_queue_t idx_queue;
+  
+} server_pool_t;
+
+typedef struct client_pool_s {
+
+  reactor_pool_t rpool;
+  event_heap_t event_heap;
+  statistic_t statistic;
+
+} client_pool_t;
+
 typedef struct thread_pool_s {
 
-  int n;
+  int n; // workers number
   pthread_t * worker;
-  reactor_pool_t * rct_pool_p;
-  int (*handle_event) ( struct epoll_event * ev, reactor_pool_t * rp_p );
+  void * pool_p; // pointer on some pool ( reactor or client )
+  reactor_pool_t * rpool_p; 
+  int (*handle_event) ( struct epoll_event * ev, void * pool_p );
   
 } thread_pool_t;
 
-typedef struct reactor_s {
 
-  int cn;
-  // max connections
-  int max_n;
-  int workers;
-  thread_pool_t thread_pool;
-  reactor_pool_t pool;
+typedef struct reactor_core_s {
+
+  thread_pool_t thread_pool;   
   
-} reactor_t;
+} reactor_core_t;
+
+typedef struct server_reactor_s {
+
+  reactor_core_t core;
+  server_pool_t pool;
+  
+} server_reactor_t;
 
 typedef enum {
 
