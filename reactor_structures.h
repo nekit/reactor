@@ -60,7 +60,7 @@ typedef struct __attribute__ ((__packed__)) data_wrap_s {
   
 } data_wrap_t;
 
-typedef union __attribute__ ((__transparent_union__)) udata_s {
+typedef union udata_s {
 
   data_wrap_t data;
   __uint64_t u64;
@@ -68,7 +68,7 @@ typedef union __attribute__ ((__transparent_union__)) udata_s {
 } udata_t;
 
 // base context descriptor
-typedef struct base_sock_desk_s {
+typedef struct base_sock_desc_s {
 
   int sock;  
   sock_type_t type;
@@ -81,26 +81,34 @@ typedef struct base_sock_desk_s {
   pthread_mutex_t write_mutex;
   pthread_mutex_t state_mutex;
   inq_t inq;
+  int key;  
   
-} base_sock_desk_t;
+} base_sock_desc_t;
 
 // context descriptor for server
-typedef struct serv_sock_desk_s {
+typedef struct serv_sock_desc_s {
 
-  base_sock_desk_t base;
-  int key;  
+  base_sock_desc_t base;
     
-} serv_sock_desk_t;
+} serv_sock_desc_t;
 
 // context descriptor for client
-typedef struct client_sock_desk_s {
+typedef struct client_sock_desc_s {
 
-  base_sock_desk_t base;
+  base_sock_desc_t base;
   int sock_dup;
   int timeout; // in milliseconds
   uint32_t send_idx;
   
-} client_sock_desk_t;
+} client_sock_desc_t;
+
+typedef union sock_desc_data_u {
+
+  base_sock_desc_t base;
+  serv_sock_desc_t serv;
+  client_sock_desc_t clnt;
+  
+} sock_desc_data_t;
 
 typedef struct int_queue_s {
 
@@ -144,8 +152,7 @@ typedef struct reactor_pool_s {
 
   int max_n; // max connections
   int epfd;
-  int mode;
-  void * sock_desk;  
+  sock_desc_data_t * sock_desc;  
   event_queue_t event_queue;
   
 } reactor_pool_t;

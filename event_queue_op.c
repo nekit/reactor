@@ -81,11 +81,7 @@ void pop_event_queue ( event_queue_t * eq, struct epoll_event * ev ) {
 void push_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
   
   udata_t ud = { .u64 = ev -> data.u64 };
-  base_sock_desk_t * sd_p = NULL;
-  if ( R_REACTOR_SERVER == rp_p -> mode )
-    sd_p = &(((serv_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
-  if ( R_REACTOR_SERVER == rp_p -> mode )
-    sd_p = &(((client_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
+  base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
   event_queue_t * eq = &rp_p -> event_queue;
   inq_t * inq_p = &sd_p -> inq;
   __uint32_t t = 0;
@@ -112,11 +108,7 @@ void pop_wrap_event_queue ( reactor_pool_t * rp_p, struct epoll_event * ev ) {
   pop_event_queue ( eq, ev );
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  base_sock_desk_t * sd_p = NULL;
-  if ( R_REACTOR_SERVER == rp_p -> mode )
-    sd_p = &(((serv_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
-  if ( R_REACTOR_SERVER == rp_p -> mode )
-    sd_p = &(((client_sock_desk_t *)rp_p -> sock_desk)[ ud.data.idx ].base);
+  base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
 
   inq_t * inq_p = &sd_p -> inq;
   // remove events

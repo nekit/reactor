@@ -12,7 +12,7 @@
 
 #include "parse_args.h"
 
-static int server_init_sock ( serv_sock_desk_t * ssd_p, int sock ) {
+static int server_init_sock ( serv_sock_desc_t * ssd_p, int sock ) {
 
   if ( 0 != set_nonblock ( sock ) ) {
 
@@ -21,7 +21,7 @@ static int server_init_sock ( serv_sock_desk_t * ssd_p, int sock ) {
   }
 
   static int key = 1;
-  ssd_p -> key = key++;  
+  ssd_p -> base.key = key++;  
   ssd_p -> base.sock = sock;
   ssd_p -> base.type = ST_DATA;
   ssd_p -> base.send_ofs = sizeof ( ssd_p -> base.send_pack );
@@ -38,11 +38,11 @@ static int server_init_sock ( serv_sock_desk_t * ssd_p, int sock ) {
 }
 
 
-static int deinit_sock ( serv_sock_desk_t * ssd_p ) {
+static int deinit_sock ( serv_sock_desc_t * ssd_p ) {
 
   close ( ssd_p -> base.sock );
   ssd_p -> base.sock = -1;
-  ssd_p -> key = -1;
+  ssd_p -> base.key = -1;
 
   return 0;
 }
@@ -51,7 +51,8 @@ static int deinit_sock ( serv_sock_desk_t * ssd_p ) {
 static int server_handle_error ( struct epoll_event * ev, server_reactor_t * sr_p )  {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
+  reactor_pool_t * rp_p = &sr_p -> core.reactor_pool;
+  serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
     
   if ( 0 != epoll_ctl ( sr_p -> core.reactor_pool.epfd, EPOLL_CTL_DEL, ssd_p -> base.sock, NULL ) ) {
 
@@ -73,7 +74,8 @@ static int server_handle_error ( struct epoll_event * ev, server_reactor_t * sr_
 static int server_handle_accept ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * acsd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
+  reactor_pool_t * rp_p = &sr_p -> core.reactor_pool;
+  serv_sock_desc_t * acsd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
   
   int acp_sock = acsd_p -> base.sock;
 
@@ -94,7 +96,7 @@ static int server_handle_accept ( struct epoll_event * ev, server_reactor_t * sr
     }
     
     int idx = pop_int_queue ( &sr_p -> idx_queue );
-    serv_sock_desk_t * ssd_p = &(((serv_sock_desk_t *)sr_p -> core.reactor_pool.sock_desk)[idx]);
+    serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[idx].serv;
     if ( 0 != server_init_sock ( ssd_p, sock ) ) {
 
       ERROR_MSG ( "init sock failed!!!\n" );
@@ -106,7 +108,7 @@ static int server_handle_accept ( struct epoll_event * ev, server_reactor_t * sr
 
     udata_t ud;
     ud.data.idx = idx;
-    ud.data.key = ssd_p -> key;
+    ud.data.key = ssd_p -> base.key;
 
     tev.data.u64 = ud.u64;
     tev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
@@ -126,10 +128,11 @@ static int server_handle_accept ( struct epoll_event * ev, server_reactor_t * sr
 int server_handle_read ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
-  base_sock_desk_t * sd_p = &ssd_p -> base;
+  reactor_pool_t * rp_p = &sr_p -> core.reactor_pool;
+  serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
+  base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;  
 
-  if ( ssd_p -> key != ud.data.key ) {
+  if ( ssd_p -> base.key != ud.data.key ) {
 
     TRACE_MSG ( "sd_p -> key != ud.data.key\n" );
     return (EXIT_FAILURE);
@@ -177,10 +180,12 @@ int server_handle_read ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 static int server_handle_write ( struct epoll_event * ev, server_reactor_t * sr_p ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
-  base_sock_desk_t * sd_p = &ssd_p -> base;
+  reactor_pool_t * rp_p = &sr_p -> core.reactor_pool;
+  serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
+  base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
+
  
-  if ( ssd_p -> key != ud.data.key ) {
+  if ( ssd_p -> base.key != ud.data.key ) {
 
     TRACE_MSG ( "sd_p -> key != ud.data.key\n" );
     return 0;
@@ -250,8 +255,9 @@ int server_handle_event ( struct epoll_event * ev, void * reactor_p ) {
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  serv_sock_desk_t * ssd_p = &((serv_sock_desk_t *)(sr_p -> core.reactor_pool.sock_desk))[ud.data.idx];
-  base_sock_desk_t * sd_p = &ssd_p -> base;
+  reactor_pool_t * rp_p = &sr_p -> core.reactor_pool;
+  serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
+  base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
 
   if ( -1 == ssd_p -> base.sock )
     return (EXIT_FAILURE);
@@ -267,7 +273,7 @@ int server_handle_event ( struct epoll_event * ev, void * reactor_p ) {
       pthread_mutex_unlock ( &sd_p -> read_mutex );
     }else {
       event_in.data = ev -> data;
-      push_wrap_event_queue ( &sr_p -> core.reactor_pool, &event_in );
+      push_wrap_event_queue ( rp_p, &event_in );
     }
   }
 
@@ -279,7 +285,7 @@ int server_handle_event ( struct epoll_event * ev, void * reactor_p ) {
       pthread_mutex_unlock ( &sd_p -> write_mutex );
     } else {
       event_out.data = ev -> data;
-      push_wrap_event_queue ( &sr_p -> core.reactor_pool, &event_out );
+      push_wrap_event_queue ( rp_p, &event_out );
     }  
   }
   

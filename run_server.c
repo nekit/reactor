@@ -21,14 +21,14 @@ static int init_accept_sock ( server_reactor_t * serv_reactor_p, run_mode_t * rm
 
   // take slot
   int idx = pop_int_queue ( &serv_reactor_p -> idx_queue );
-  serv_sock_desk_t * ssd_p = &(((serv_sock_desk_t *) serv_reactor_p -> core.reactor_pool.sock_desk)[idx]);
-  base_sock_desk_t * sd_p = &ssd_p -> base;
+  serv_sock_desc_t * ssd_p = &(((serv_sock_desc_t *) serv_reactor_p -> core.reactor_pool.sock_desc)[idx]);
+  base_sock_desc_t * sd_p = &ssd_p -> base;
   
   // init accept descriptor
   sd_p -> sock = listn_sock;
   sd_p -> type = ST_ACCEPT;
   sd_p -> inq.flags = 0;
-  ssd_p -> key = ACCEPT_KEY;
+  ssd_p -> base.key = ACCEPT_KEY;
 
   // add to epoll
   struct epoll_event ev;
