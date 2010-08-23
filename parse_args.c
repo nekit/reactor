@@ -90,8 +90,10 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
 	    break;
 	  }
       
-      if ( i >= sizeof (rm_names) / sizeof (rm_names[0]) ) 
+      if ( i >= sizeof (rm_names) / sizeof (rm_names[0]) )  {
 	INFO_MSG ( "Unknown mode: %s\n", optarg );
+	return (EXIT_FAILURE);
+      }
       
       break; // end of 'm'      
       

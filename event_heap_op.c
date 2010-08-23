@@ -8,6 +8,8 @@
 #define eh_right(i) ( (i<<1) + 2)
 #define eh_parent(i) ((i - 1) >> 1)
 
+// TODO EXIT...
+
 int event_heap_init ( event_heap_t * eh, int n ) {
 
   n += 10; // TODO
@@ -16,32 +18,32 @@ int event_heap_init ( event_heap_t * eh, int n ) {
   if ( NULL == eh -> ev ) {
 
     ERROR_MSG ( "malloc heap size %d failed\n", n );
-    return -1;    
+    return (EXIT_FAILURE);    
   } 
 
   if ( 0 != pthread_mutex_init ( &eh -> mutex, NULL ) ) {
 
     ERROR_MSG ( "pthread_mutex_init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   if ( 0 != pthread_mutex_init ( &eh -> sleep_mutex, NULL ) ) {
 
     ERROR_MSG ( "pthread_mutex_init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   if ( 0 != pthread_cond_init ( &eh -> sleep_cond, NULL ) ) {
 
     ERROR_MSG ( "pthread_cond_init failed\n" );
-    return -1;
+    return (EXIT_FAILURE);
   }
 
   eh -> cap = n;
   eh -> size = 0;
   INFO_MSG ( "event_heap cap: %d\n", n );
 
-  return 0;
+  return (EXIT_SUCCESS);
 }
 
 /*

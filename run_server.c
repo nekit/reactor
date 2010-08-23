@@ -50,6 +50,13 @@ static int init_accept_sock ( server_reactor_t * serv_reactor_p, run_mode_t * rm
 // init server reactor
 static int server_reactor_init ( server_reactor_t * serv_reactor_p, run_mode_t * rm_p ) {
 
+  /* init reactor core */
+  if ( EXIT_SUCCESS != reactor_core_init ( &serv_reactor_p -> core, rm_p, serv_reactor_p ) ) {
+
+    ERROR_MSG ( "reactor_core_init failed\n" );
+    return (EXIT_FAILURE);
+  }  
+
   /* init idx queue */
   if ( EXIT_SUCCESS != init_int_queue ( &serv_reactor_p -> idx_queue, rm_p -> n ) ) {
 
@@ -60,14 +67,7 @@ static int server_reactor_init ( server_reactor_t * serv_reactor_p, run_mode_t *
   int i;
   for ( i = 0; i < rm_p -> n; ++i )
     push_int_queue ( &serv_reactor_p -> idx_queue, i );
-
-  /* init reactor core */
-  if ( EXIT_SUCCESS != reactor_core_init ( &serv_reactor_p -> core, rm_p, serv_reactor_p ) ) {
-
-    ERROR_MSG ( "reactor_core_init failed\n" );
-    return (EXIT_FAILURE);
-  }  
-
+  
   return (EXIT_SUCCESS);
 }
 

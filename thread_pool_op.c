@@ -41,18 +41,17 @@ int init_thread_pool ( thread_pool_t * tp, run_mode_t * rm_p, void * reactor_p )
 
   // handlers & reactor_pool pointer
   if ( R_REACTOR_SERVER == rm_p -> mode ) {
+    
     tp -> handle_event = server_handle_event;
     tp -> rpool_p = &(((server_reactor_t *) reactor_p) -> core.reactor_pool);
   }
-
-  /*
-
-    TODO Client part
+     
+  if ( R_REACTOR_CLIENT == rm_p -> mode ) {
     
-  if ( R_REACTOR_CLIENT == mode )
     tp -> handle_event = client_handle_event;
-  */
-
+    tp -> rpool_p = &(((client_reactor_t *) reactor_p) -> core.reactor_pool);
+  }
+  
   return (EXIT_SUCCESS);  
 }
 
