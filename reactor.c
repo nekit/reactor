@@ -2,7 +2,6 @@
 #include <signal.h>
 #include "reactor_structures.h"
 #include "parse_args.h"
-#include "run_reactor.h"
 #include "run_server.h"
 #include "run_client.h"
 #include "log.h"

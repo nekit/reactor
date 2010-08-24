@@ -7,22 +7,11 @@
 #include <sys/epoll.h>
 #include <semaphore.h>
 
-#define DATA_QUEUE_SIZE 32
 #define EPOLL_TIMEOUT 100
-
 #define IP_ADDR_SIZE 20
-#define PACKET_SIZE sizeof ( uint32_t )
-typedef char packet_t[ PACKET_SIZE ];
 
-typedef struct data_queue_s {
-
-  packet_t pack[ DATA_QUEUE_SIZE ];
-  int head;
-  int tail;
-  sem_t used;
-  sem_t empty;
-  
-} data_queue_t;
+#include "base_reactor_structures.h"
+#include "data_queue.h"
 
 typedef struct event_queue_s {
 
@@ -81,7 +70,7 @@ typedef struct base_sock_desc_s {
   pthread_mutex_t write_mutex;
   pthread_mutex_t state_mutex;
   inq_t inq;
-  int key;  
+  volatile int key;  
   
 } base_sock_desc_t;
 

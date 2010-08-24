@@ -1,7 +1,7 @@
 #include "reactor_pool_op.h"
 #include "event_queue_op.h"
 #include "int_queue_op.h"
-#include "data_queue_op.h"
+#include "data_queue.h"
 #include "event_heap_op.h"
 #include "log.h"
 #include <memory.h>
@@ -31,7 +31,7 @@ int init_reactor_pool ( reactor_pool_t * rct_pool_p, run_mode_t * rm_p ) {
     base_sock_desc_t * sd_p = &rct_pool_p -> sock_desc[i].base; 
 
     // init data queue
-    if ( EXIT_SUCCESS != data_queue_init ( &sd_p -> data_queue ) ) {
+    if ( EXIT_SUCCESS != data_queue_init_stnd ( &sd_p -> data_queue ) ) {
       
       ERROR_MSG ( "data_queue_init failed\n" );
       return (EXIT_FAILURE);
