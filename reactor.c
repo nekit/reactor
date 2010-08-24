@@ -17,9 +17,7 @@ int main ( int argc, char * argv[] ) {
   if ( EXIT_SUCCESS != parse_args ( argc, argv, &run_mode ) )
     return (EXIT_SUCCESS);  
 
-
-  // TODO
-
+  // switch program mode
   switch ( run_mode.mode ) {
 
   case R_REACTOR_SERVER:

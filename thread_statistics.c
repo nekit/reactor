@@ -30,7 +30,7 @@ void * get_statistics ( void * args ){
     }
     
     pthread_mutex_lock ( &stat -> mutex );
-    printf( "statistics: %lld tpc\n", stat -> val );
+    printf( "%lld\n", stat -> val );
     fflush(stdout);
     if ( 0 == stat -> val ) {
       if (0 == --control){
