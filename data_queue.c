@@ -82,26 +82,10 @@ static int reinit_q ( data_queue_t * dq ) {
 }
 
 // deinit queue
-static void deinit_q ( data_queue_t * dq ) {
+static void delete_q ( data_queue_t * dq ) {
 
   sem_destroy ( &dq -> empty );
   sem_destroy ( &dq -> used );
-}
-
-static void set_tail ( data_queue_t * dq, int val ) {
-  dq -> tail = val;
-}
-
-static void set_head ( data_queue_t * dq, int val ) {
-  dq -> head = val;
-}
-
-static int get_tail ( data_queue_t * dq ) {
-  return dq -> tail;
-}
-
-static int get_head ( data_queue_t * dq ) {
-  return dq -> head;
 }
 
 // init data_queue & methods
@@ -118,49 +102,7 @@ int data_queue_init_stnd ( data_queue_t * dq ) {
   dq -> pop = pop_data;
   dq -> pop_f = pop_data_f;
   dq -> reinit = reinit_q;
-  dq -> deinit = deinit_q;
-  dq -> set_tail = set_tail;
-  dq -> set_head = set_head;
-  dq -> get_tail = get_tail;
-  dq -> get_head = get_head;
-
+  dq -> delete = delete_q;
+  
   return (EXIT_SUCCESS);
-}
-
-inline void data_queue_push ( data_queue_t *dq, packet_t pack ) {
-  dq -> push ( dq, pack );
-}
-
-inline int data_queue_pop ( data_queue_t * dq, packet_t pack ) {
-  return dq -> pop ( dq, pack );
-}
-
-inline int data_queue_pop_f ( data_queue_t * dq, packet_t pack ) {
-  return dq -> pop_f ( dq, pack );
-}
-
-inline void data_queue_deinit ( data_queue_t * dq ) {
-  dq -> deinit ( dq );
-}
-
-inline int data_queue_reinit ( data_queue_t * dq ) {
-  return dq -> reinit ( dq );
-}
-
-// setter's
-inline void data_queue_set_tail ( data_queue_t * dq, int val ) {
-  dq -> set_tail ( dq, val );
-}
-
-inline void data_queue_set_head ( data_queue_t * dq, int val ) {
-  dq -> set_head ( dq, val );
-}
-
-// getter's
-inline int data_queue_get_tail ( data_queue_t * dq ) {
-  return dq -> get_tail ( dq );
-}
-
-inline int data_queue_get_head ( data_queue_t * dq ) {
-  return dq -> get_head ( dq );
 }
