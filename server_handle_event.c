@@ -37,7 +37,6 @@ static int server_init_sock ( serv_sock_desc_t * ssd_p, int sock ) {
   return (EXIT_SUCCESS);
 }
 
-
 static int deinit_sock ( serv_sock_desc_t * ssd_p ) {
 
   close ( ssd_p -> base.sock );
@@ -46,7 +45,6 @@ static int deinit_sock ( serv_sock_desc_t * ssd_p ) {
 
   return 0;
 }
-
 
 static int server_handle_error ( struct epoll_event * ev, reactor_t * reactor_ptr )  {
 
@@ -69,7 +67,6 @@ static int server_handle_error ( struct epoll_event * ev, reactor_t * reactor_pt
   return 0;
 }
 
-
 // accept O_o
 static int server_handle_accept ( struct epoll_event * ev, reactor_t * reactor_ptr ) {
 
@@ -79,13 +76,15 @@ static int server_handle_accept ( struct epoll_event * ev, reactor_t * reactor_p
   
   int acp_sock = acsd_p -> base.sock;
 
+  // TODO Backlog in right place
   int i;
-  for ( i = 0; i < DEFAULT_LISTN_BACKLOG + 1; ++i  ) {
+  for ( i = 0; i < DEFAULT_LISTN_BACKLOG; ++i  ) {
 
     int sock = accept ( acp_sock, NULL, NULL );
     if ( -1 == sock ) {
-      // fd ends ???
-      continue;
+      // TODO 
+      // check fd ends ???
+      break;
     }  
 
     //check available slots!    
