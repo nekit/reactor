@@ -150,9 +150,8 @@ typedef struct thread_pool_s {
 
   int n; // workers number
   pthread_t * worker;
-  void * reactor_p; // pointer on some reactor ( server or client )
-  reactor_pool_t * rpool_p; 
-  int (*handle_event) ( struct epoll_event * ev, void * reactor_p );
+  union reactor_u * reactor_ptr;
+  int (*handle_event) ( struct epoll_event * ev, union reactor_u * reactor_ptr );
   
 } thread_pool_t;
 
@@ -177,6 +176,14 @@ typedef struct client_reactor_s {
   statistic_t statistic;
   
 } client_reactor_t;
+
+typedef union reactor_u {
+
+  reactor_core_t core;
+  server_reactor_t serv;
+  client_reactor_t clnt;  
+  
+} reactor_t;
 
 typedef enum {
 

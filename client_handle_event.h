@@ -3,6 +3,6 @@
 
 #include "reactor_structures.h"
 
-int client_handle_event ( struct epoll_event * ev, void * reactor_p );
+int client_handle_event ( struct epoll_event * ev, reactor_t * reactor_ptr );
 
 #endif

@@ -4,7 +4,7 @@
 #include "event_queue_op.h"
 #include "log.h"
 
-int reactor_core_init ( reactor_core_t * rc_p, run_mode_t * rm_p, void * reactor_p ) {
+int reactor_core_init ( reactor_core_t * rc_p, run_mode_t * rm_p, union reactor_u * reactor_ptr ) {
 
   /* init reactor_pool */
   if ( EXIT_SUCCESS != init_reactor_pool ( &rc_p -> reactor_pool, rm_p ) ) {
@@ -14,7 +14,7 @@ int reactor_core_init ( reactor_core_t * rc_p, run_mode_t * rm_p, void * reactor
   }
 
   /* init thread pool */
-  if ( EXIT_SUCCESS != init_thread_pool ( &rc_p -> thread_pool, rm_p, reactor_p ) ) {
+  if ( EXIT_SUCCESS != init_thread_pool ( &rc_p -> thread_pool, rm_p, reactor_ptr ) ) {
 
     ERROR_MSG ( "init_thread_pool failed\n" );
     return (EXIT_FAILURE);

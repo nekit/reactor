@@ -8,7 +8,7 @@
 
 #define ACCEPT_KEY 0
 
-static int init_accept_sock ( server_reactor_t * serv_reactor_p, run_mode_t * rm_p ) {
+static int init_accept_sock ( reactor_t * serv_reactor_p, run_mode_t * rm_p ) {
 
   // bind addres
   int listn_sock = bind_socket ( inet_addr ( rm_p -> ip_addr ), htons ( rm_p -> port ), rm_p -> listn_backlog );
@@ -20,7 +20,7 @@ static int init_accept_sock ( server_reactor_t * serv_reactor_p, run_mode_t * rm
     return (EXIT_FAILURE);
 
   // take slot
-  int idx = pop_int_queue ( &serv_reactor_p -> idx_queue );
+  int idx = pop_int_queue ( &serv_reactor_p -> serv.idx_queue );
   serv_sock_desc_t * ssd_p = &(((serv_sock_desc_t *) serv_reactor_p -> core.reactor_pool.sock_desc)[idx]);
   base_sock_desc_t * sd_p = &ssd_p -> base;
   
@@ -48,7 +48,7 @@ static int init_accept_sock ( server_reactor_t * serv_reactor_p, run_mode_t * rm
 }
 
 // init server reactor
-static int server_reactor_init ( server_reactor_t * serv_reactor_p, run_mode_t * rm_p ) {
+static int server_reactor_init (reactor_t * serv_reactor_p, run_mode_t * rm_p ) {
 
   /* init reactor core */
   if ( EXIT_SUCCESS != reactor_core_init ( &serv_reactor_p -> core, rm_p, serv_reactor_p ) ) {
@@ -58,7 +58,7 @@ static int server_reactor_init ( server_reactor_t * serv_reactor_p, run_mode_t *
   }  
 
   /* init idx queue */
-  if ( EXIT_SUCCESS != init_int_queue ( &serv_reactor_p -> idx_queue, rm_p -> n ) ) {
+  if ( EXIT_SUCCESS != init_int_queue ( &serv_reactor_p -> serv.idx_queue, rm_p -> n ) ) {
 
     ERROR_MSG ( "init_int_queue failed\n" );
     return (EXIT_FAILURE);
@@ -66,14 +66,14 @@ static int server_reactor_init ( server_reactor_t * serv_reactor_p, run_mode_t *
   /* fill idx queue empty slots */
   int i;
   for ( i = 0; i < rm_p -> n; ++i )
-    push_int_queue ( &serv_reactor_p -> idx_queue, i );
+    push_int_queue ( &serv_reactor_p -> serv.idx_queue, i );
   
   return (EXIT_SUCCESS);
 }
 
 int run_server ( run_mode_t run_mode ) {
 
-  server_reactor_t serv_reactor;
+  reactor_t serv_reactor;
   if ( EXIT_SUCCESS != server_reactor_init ( &serv_reactor, &run_mode ) ) {
 
     ERROR_MSG ( "server_reactor_init failed\n" );

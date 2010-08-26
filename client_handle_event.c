@@ -70,13 +70,13 @@ static int push_event_to_heap ( struct epoll_event * ev, event_heap_t * eh_p, in
   return 0;
 }
 
-static int client_handle_read ( struct epoll_event * ev, client_reactor_t * cr_p ) {
+static int client_handle_read ( struct epoll_event * ev, reactor_t * reactor_ptr ) {
 
   static __thread struct epoll_event event_in = { .events = EPOLLIN };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  reactor_pool_t * rp_p = &cr_p -> core.reactor_pool;
+  reactor_pool_t * rp_p = &reactor_ptr -> core.reactor_pool;
   base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
   
   // recv data
@@ -127,7 +127,7 @@ static int client_handle_read ( struct epoll_event * ev, client_reactor_t * cr_p
   
   // update statistic
   TRACE_MSG ( "recieve successfully, update statistic\n" );
-  update_statistic ( &cr_p -> statistic );
+  update_statistic ( &reactor_ptr -> clnt.statistic );
   
   //push EPOLLIN in event queue
   event_in.data = ev -> data;
@@ -136,13 +136,13 @@ static int client_handle_read ( struct epoll_event * ev, client_reactor_t * cr_p
   return 0;
 }
 
-static int client_handle_write ( struct epoll_event * ev, client_reactor_t * cr_p ) {
+static int client_handle_write ( struct epoll_event * ev, reactor_t * reactor_ptr ) {
 
   static __thread struct epoll_event event_rwout = { .events = EPOLLOUT | EPOLLET | EPOLLONESHOT };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  reactor_pool_t * rp_p = &cr_p -> core.reactor_pool;
+  reactor_pool_t * rp_p = &reactor_ptr -> core.reactor_pool;
   client_sock_desc_t * csd_p = &rp_p -> sock_desc[ ud.data.idx ].clnt;
   base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;
   
@@ -219,7 +219,7 @@ static int client_handle_write ( struct epoll_event * ev, client_reactor_t * cr_
 
   // push event to event_heap...
   event_out.data = ev -> data;
-  if ( 0 != push_event_to_heap ( &event_out, &cr_p -> event_heap, csd_p -> timeout ) ) {
+  if ( 0 != push_event_to_heap ( &event_out, &reactor_ptr -> clnt.event_heap, csd_p -> timeout ) ) {
 
     ERROR_MSG ( "push_event_to_heap failed\n" );
     return -1;
@@ -228,10 +228,10 @@ static int client_handle_write ( struct epoll_event * ev, client_reactor_t * cr_
   return 0;
 }
 
-int client_handle_error ( struct epoll_event * ev, client_reactor_t * cr_p ) {
+int client_handle_error ( struct epoll_event * ev, reactor_t * reactor_ptr ) {
 
   udata_t ud = { .u64 = ev -> data.u64 };
-  base_sock_desc_t * sd_p = &cr_p -> core.reactor_pool.sock_desc[ ud.data.idx ].clnt.base;
+  base_sock_desc_t * sd_p = &reactor_ptr -> core.reactor_pool.sock_desc[ ud.data.idx ].clnt.base;
 
   // TODO normal handling)
   
@@ -241,19 +241,18 @@ int client_handle_error ( struct epoll_event * ev, client_reactor_t * cr_p ) {
   return 0;
 }
 
-int client_handle_event ( struct epoll_event * ev, void * reactor_p ) {
+int client_handle_event ( struct epoll_event * ev, reactor_t * reactor_ptr ) {
 
   static __thread struct epoll_event event_in = { .events = EPOLLIN };
   static __thread struct epoll_event event_out = { .events = EPOLLOUT };
-
-  client_reactor_t * cr_p = reactor_p;
+  
   udata_t ud = { .u64 = ev -> data.u64 };
-  reactor_pool_t * rp_p = &cr_p -> core.reactor_pool;
+  reactor_pool_t * rp_p = &reactor_ptr -> core.reactor_pool;
   base_sock_desc_t * sd_p = &rp_p -> sock_desc[ ud.data.idx ].base;  
 
   // check errors
   if ( 0 != (ev -> events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) )
-    client_handle_error ( ev, cr_p );
+    client_handle_error ( ev, reactor_ptr );
 
   // check EPOLLIN
   if ( 0 != (ev -> events & EPOLLIN) ) {
@@ -261,7 +260,7 @@ int client_handle_event ( struct epoll_event * ev, void * reactor_p ) {
     if ( 0 == pthread_mutex_trylock ( &sd_p -> read_mutex ) ) {
 
       TRACE_MSG ( "handling read event\n" );
-      client_handle_read ( ev, cr_p );
+      client_handle_read ( ev, reactor_ptr );
       pthread_mutex_unlock ( &sd_p -> read_mutex );
       TRACE_MSG ( "read event handled\n" );
     } else {
@@ -277,7 +276,7 @@ int client_handle_event ( struct epoll_event * ev, void * reactor_p ) {
     if ( 0 == pthread_mutex_trylock ( &sd_p -> write_mutex ) ) {
 
       TRACE_MSG ( "handling write event\n" );
-      client_handle_write ( ev, cr_p );
+      client_handle_write ( ev, reactor_ptr );
       pthread_mutex_unlock ( &sd_p -> write_mutex );
       TRACE_MSG ( "write event handled\n" );	
     } else {

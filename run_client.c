@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <memory.h>
 
-static int client_reactor_init ( client_reactor_t * cr_p, run_mode_t * rm_p ) {
+static int client_reactor_init ( reactor_t * cr_p, run_mode_t * rm_p ) {
 
   /* init reactor core */
   if ( EXIT_SUCCESS != reactor_core_init ( &cr_p -> core, rm_p, cr_p ) ) {
@@ -21,15 +21,15 @@ static int client_reactor_init ( client_reactor_t * cr_p, run_mode_t * rm_p ) {
   }
 
   // init event heap
-  if ( EXIT_SUCCESS != event_heap_init ( &cr_p -> event_heap, rm_p -> n ) ) {
+  if ( EXIT_SUCCESS != event_heap_init ( &cr_p -> clnt.event_heap, rm_p -> n ) ) {
 
     ERROR_MSG ( "event_heap_init failed\n" );
     return (EXIT_FAILURE);
   }
 
   // init statistic
-  cr_p -> statistic.val = 0;
-  if ( 0 != pthread_mutex_init ( &cr_p -> statistic.mutex, NULL ) ) {
+  cr_p -> clnt.statistic.val = 0;
+  if ( 0 != pthread_mutex_init ( &cr_p -> clnt.statistic.mutex, NULL ) ) {
     
     ERROR_MSG ( "pthread_mutex_init failed\n" );
     return (EXIT_FAILURE);
@@ -126,15 +126,15 @@ static int connect_client ( int idx, reactor_pool_t * rp_p, run_mode_t * rm_p ) 
   }
 
   // inform
-  static int cnt = 1;
-  INFO_MSG ( "client connected %d\n", cnt++ );
+  // static int cnt = 1;
+  // INFO_MSG ( "client connected %d\n", cnt++ );
 
   return (EXIT_SUCCESS);
 }
 
 int run_client ( run_mode_t run_mode ) {
 
-  client_reactor_t client_reactor;
+  reactor_t client_reactor;
   if ( EXIT_SUCCESS != client_reactor_init ( &client_reactor, &run_mode ) ) {
 
     ERROR_MSG ( "client_reactor_init failed\n" );
@@ -149,6 +149,8 @@ int run_client ( run_mode_t run_mode ) {
       ERROR_MSG ( "failed to connect_client\n" );
       return (EXIT_FAILURE);
     }
+  // inform
+  INFO_MSG ( "%d client connected\n", run_mode.n ); 
   
   // start scheduler
   pthread_t scheduler;
@@ -160,7 +162,7 @@ int run_client ( run_mode_t run_mode ) {
     
   // start statistic thread
   pthread_t stat_thread;
-  if ( 0 != pthread_create ( &stat_thread, NULL, get_statistics, (void *) &client_reactor.statistic ) ) {
+  if ( 0 != pthread_create ( &stat_thread, NULL, get_statistics, (void *) &client_reactor.clnt.statistic ) ) {
     
     ERROR_MSG ( "start stat_thread failed\n" );
     return (EXIT_FAILURE);
