@@ -67,6 +67,9 @@ static int server_reactor_init (reactor_t * serv_reactor_p, run_mode_t * rm_p ) 
   int i;
   for ( i = 0; i < rm_p -> n; ++i )
     push_int_queue ( &serv_reactor_p -> serv.idx_queue, i );
+
+  /* init server backlog */
+  serv_reactor_p -> serv.backlog = rm_p -> listn_backlog;
   
   return (EXIT_SUCCESS);
 }

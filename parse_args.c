@@ -24,6 +24,7 @@ static void print_help () {
 	   "\t-n [conect's]\t max connections number ( or amount of clients in client mode )\n"
 	   "\t-m [mode]\t program mode (reactor_server, reactor_client)\n"
 	   "\t-f [frequency]\t frequency in tps for one client in client mode\n"
+	   "\t-b [backlog]\t listen backlog\n"
 	  );
 }
 
@@ -55,7 +56,7 @@ int parse_args ( int argc, char * argv[], run_mode_t * rm ) {
 
   int i;
   int res;
-  while ( (res = getopt(argc,argv,"hs:p:w:L:n:m:f:")) != -1) {
+  while ( (res = getopt(argc,argv,"hs:p:w:L:n:m:f:b:")) != -1) {
     switch (res){
 
     case 'h':

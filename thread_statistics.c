@@ -16,8 +16,8 @@ void * get_statistics ( void * args ){
   struct timeval last_time;
   struct timeval current_time;
   
-  sleep_time.tv_sec = 0;
-  sleep_time.tv_nsec = 50 * 1000; // 50ms
+  sleep_time.tv_sec = 1;
+  sleep_time.tv_nsec = 0;
   gettimeofday (&last_time, NULL);
   int control = 10;
   for ( ;; ) {

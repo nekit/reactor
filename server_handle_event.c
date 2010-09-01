@@ -39,6 +39,7 @@ static int server_init_sock ( serv_sock_desc_t * ssd_p, int sock ) {
 
 static int deinit_sock ( serv_sock_desc_t * ssd_p ) {
 
+  // shutdown
   close ( ssd_p -> base.sock );
   ssd_p -> base.sock = -1;
   ssd_p -> base.key = -1;
@@ -51,6 +52,8 @@ static int server_handle_error ( struct epoll_event * ev, reactor_t * reactor_pt
   udata_t ud = { .u64 = ev -> data.u64 };
   reactor_pool_t * rp_p = &reactor_ptr -> core.reactor_pool;
   serv_sock_desc_t * ssd_p = &rp_p -> sock_desc[ ud.data.idx ].serv;
+
+  int sock = ssd_p -> base.sock;
     
   if ( 0 != epoll_ctl (rp_p -> epfd, EPOLL_CTL_DEL, ssd_p -> base.sock, NULL ) ) {
 
@@ -62,7 +65,7 @@ static int server_handle_error ( struct epoll_event * ev, reactor_t * reactor_pt
 
   push_int_queue ( &reactor_ptr -> serv.idx_queue, ud.data.idx );
 
-  INFO_MSG ( "error handled\n" );
+  INFO_MSG ( "error handled sock %d\n", sock );
   
   return 0;
 }
@@ -78,7 +81,7 @@ static int server_handle_accept ( struct epoll_event * ev, reactor_t * reactor_p
 
   // TODO Backlog in right place
   int i;
-  for ( i = 0; i < DEFAULT_LISTN_BACKLOG; ++i  ) {
+  for ( i = 0; i < reactor_ptr -> serv.backlog; ++i  ) {
 
     int sock = accept ( acp_sock, NULL, NULL );
     if ( -1 == sock ) {

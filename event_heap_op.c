@@ -41,7 +41,7 @@ int event_heap_init ( event_heap_t * eh, int n ) {
 
   eh -> cap = n;
   eh -> size = 0;
-  INFO_MSG ( "event_heap cap: %d\n", n );
+ // INFO_MSG ( "event_heap cap: %d\n", n );
 
   return (EXIT_SUCCESS);
 }

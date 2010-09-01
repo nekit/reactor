@@ -140,15 +140,28 @@ int run_client ( run_mode_t run_mode ) {
     ERROR_MSG ( "client_reactor_init failed\n" );
     return (EXIT_FAILURE);
   }
+
+  struct timespec sleep_time;
+  struct timespec rem;
+  sleep_time.tv_sec = 0;
+  sleep_time.tv_nsec = 10 * 1E6; // 10ms
   
   //connect all clients
   int i;
-  for ( i = 0; i < run_mode.n; ++i )
+  for ( i = 0; i < run_mode.n; ++i ) {
     if ( EXIT_SUCCESS != connect_client ( i, &client_reactor.core.reactor_pool, &run_mode ) ) {
 
       ERROR_MSG ( "failed to connect_client\n" );
       return (EXIT_FAILURE);
     }
+
+    if ( i % 1000 == 0 )
+      INFO_MSG ( "%d connected\n", i );
+
+    // make pause
+    nanosleep ( &sleep_time, &rem );    
+  }
+  
   // inform
   INFO_MSG ( "%d client connected\n", run_mode.n ); 
   

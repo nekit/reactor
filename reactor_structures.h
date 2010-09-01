@@ -166,6 +166,7 @@ typedef struct server_reactor_s {
 
   reactor_core_t core;
   int_queue_t idx_queue;
+  int backlog;
   
 } server_reactor_t;
 
